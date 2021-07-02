@@ -1,0 +1,23 @@
+{
+  "name": "bitstamp_trading_gui",
+  "version": "1.0.0",
+  "description": "module which helps change existing orders on bitstamp to quickly adopt to price changes",
+  "main": "bitstampServer.js",
+  "scripts": {
+    "test": "console.log(\"testing not supported\")"
+  },
+  "repository": {
+    "type": "git",
+    "url": "bitstampTradingGUI"
+  },
+  "keywords": [
+    "day",
+    "trading",
+    "trading",
+    "getting",
+    "rich",
+    "fast"
+  ],
+  "author": "Michael Zischeck",
+  "license": "UNLICENSED"
+}
