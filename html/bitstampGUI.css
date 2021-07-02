@@ -1,0 +1,161 @@
+/*
+    version 1.5
+*/
+
+body {
+    font: 14px Arial, sans-serif;
+}
+
+a{
+    text-decoration: none;
+    border:0;
+    margin:0
+}
+table{
+    border-spacing: 1em;
+    border-collapse: collapse;
+
+}
+
+td {
+    margin-bottom: 10px;
+    padding: 5px 5px 5px 0px;
+}
+
+.noSpace{
+    margin: 0;
+    padding: 0;
+
+}
+
+#label{
+    width: 150px
+
+}
+.value{
+    text-align: right;
+    vertical-align: middle;
+}
+
+hr {
+    margin: 30;
+}
+
+.column_first{
+    width: 180px;
+}
+
+.column{
+    width: 180px;
+}
+
+.column_label{
+    text-align: right;
+    font-weight: bold;
+}
+
+.row_label{
+    text-align: left;
+    font-weight: bold;
+}
+
+
+tr.top_border td{
+    border-top: 1px solid black;
+}
+
+tr.bottom_border td{
+    border-bottom: 1px solid black;
+}
+
+#nothing{
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.img_link{
+    border: 1px solid white;
+    margin: 0;
+    padding: 0;
+}
+
+.img_link:hover{
+    border: 1px solid red;
+}
+
+#labelSell{
+    text-align: center;
+    font-weight: bold;
+    font: 1.2em Arial;
+
+}
+
+#labelSell>a, .typeSell{
+    text-decoration: none;
+    color: red;
+}
+
+#labelSell>a:hover{
+    color:lightcoral;
+}
+
+
+#labelBuy{
+    text-align: center;
+    font-weight: bold;
+    font: 1.2em Arial;
+}
+
+#labelBuy>a, .typeBuy{
+    text-decoration: none;
+    color:green;
+}
+
+#labelBuy>a:hover{
+    color:lightgreen;
+}
+
+input{
+width: 6em;
+  padding: 5px 5px;
+    font-size:1em ;
+  text-align: right;
+}
+
+#currencyPairs{
+    display: none;
+
+}
+
+#currencyPairsContainer{
+    display: flex;
+
+}
+
+#currencyPairsContainer span{
+    width: 50px
+}
+
+.left{
+    float:left
+}
+.right{
+    margin-left: 50px
+}
+
+#pairsByCrypto{
+    flex: 0 0 50%;
+}
+
+#pairsByCurrency{
+    flex: 1;
+}
+
+#transactionsContainer{
+    text-align: right;
+}
+
+#transactionsContainer td, #transactionsContainer th{
+    padding: 10px
+}
