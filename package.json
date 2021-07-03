@@ -1,14 +1,11 @@
 {
   "name": "bitstamp_trading_gui",
-  "version": "1.0.0",
+  "version": "1.1.10",
   "description": "module which helps change existing orders on bitstamp to quickly adopt to price changes",
   "main": "bitstampServer.js",
-  "scripts": {
-    "test": "console.log(\"testing not supported\")"
-  },
   "repository": {
     "type": "git",
-    "url": "bitstampTradingGUI"
+    "url": "https://github.com/ipinky77/bitstampTradingGUI.git"
   },
   "keywords": [
     "day",
@@ -19,5 +16,12 @@
     "fast"
   ],
   "author": "Michael Zischeck",
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "dependencies": {
+    "bitstamp_trading_gui": "^1.0.3",
+    "express-session": ">=1.17.2",
+    "express": ">=4.17.1",
+    "utf8": ">=3.0.0",
+    "uuid": ">=8.3.2"
+  }
 }

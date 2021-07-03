@@ -1,5 +1,5 @@
-const version = 1.5
-console.log("Version", version)
+const version = "1.1.7"
+console.log("bitstampGUI.js", version)
 var currentCurrency = ""
 var currentCrypto = ""
 var currentAccount = ""
@@ -88,7 +88,7 @@ function getAccounts() {
             .attr("value", account).text(result.accounts[account].name));
 
     }
-    $("#account").val(result.defaultAccount);
+    $("#account").val(result.currentAccount);
 
 }
 

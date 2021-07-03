@@ -1,4 +1,5 @@
-// version 1.5
+const version = "1.2.0"
+console.log("BitstampClient", version)
 const utf8 = require("utf8")
 const crypto = require('crypto'); // responsible to create the nonce
 const https = require("https");
@@ -16,6 +17,7 @@ class BitStampClient {
     fields = ''
 
     constructor(configuration) {
+
         this.config = configuration
         this.server = this.config.server
         this.api_key = this.config.defaultAccount.key
@@ -39,7 +41,8 @@ class BitStampClient {
         this.marketSellOrder = `/api/v2/sell/market/${this.crypto}${this.currency}/` // amount=XRPToSell
         this.limitBuyOrder = `/api/v2/buy/${this.crypto}${this.currency}/` // amount=dollarAmountToBuy&price=priceToBuyAt
         this.limitSellOrder = `/api/v2/sell/${this.crypto}${this.currency}/` //amount=XRPToSell&price=priceToSellAt
-
+        this.transferToMain = `/api/v2/transfer-to-main/`
+        this.transferFromMain = `/api/v2/transfer-from-main/`
         // GET urls // no header required
         this.transactions = `/api/v2/transactions/${this.crypto}${this.currency}/?time=minute`
         this.orderBook = `/api/v2/order_book/${this.crypto}${this.currency}/?group=0`
@@ -204,44 +207,54 @@ class BitStampClient {
 
 
     doCancelOrder(orderId) {
-        var options = `id=${orderId}`
-        return this.doPost(this.cancelOrder, options)
+        var fields = `id=${orderId}`
+        return this.doPost(this.cancelOrder, fields)
+    }
+
+    doTransferToMain(subAccount, amount, currency) {
+        var fields = `subAccount=${subAccount}&amount=${amount}&currency=${currency}`
+        return this.doPost(this.transferToMain, fields)
+    }
+
+    doTransferFromMain(subAccount, amount, currency) {
+        var fields = `subAccount=${subAccount}&amount=${amount}&currency=${currency}`
+        return this.doPost(this.transferFromMain, fields)
     }
 
     // amount = XRP
     createLimitSellOrder(amount, price) {
-        var options = `amount=${amount}&price=${price}`
-        return this.doPost(this.limitSellOrder, options)
+        var fields = `amount=${amount}&price=${price}`
+        return this.doPost(this.limitSellOrder, fields)
     }
 
     // amount = USD
     createLimitBuyOrder(amount, price) {
-        var options = `amount=${amount}&price=${price}`
-        return this.doPost(this.limitBuyOrder, options)
+        var fields = `amount=${amount}&price=${price}`
+        return this.doPost(this.limitBuyOrder, fields)
     }
 
     // amount = XRP
     createMarketSellOrder(amount) {
-        var options = `amount=${amount}`
-        return this.doPost(this.marketSellOrder, options)
+        var fields = `amount=${amount}`
+        return this.doPost(this.marketSellOrder, fields)
     }
 
     // amount = USD
     createMarketBuyOrder(amount) {
-        var options = `amount=${amount}`
-        return this.doPost(this.marketBuyOrder, options)
+        var fields = `amount=${amount}`
+        return this.doPost(this.marketBuyOrder, fields)
     }
 
     // amount = XRP
     createInstantSellOrder(amount) {
-        var options = `amount=${amount}`
-        return this.doPost(this.instantSellOrder, options)
+        var fields = `amount=${amount}`
+        return this.doPost(this.instantSellOrder, fields)
     }
 
     // amount = USD
     createInstantBuyOrder(amount) {
-        var options = `amount=${amount}`
-        return this.doPost(this.instantBuyOrder, options)
+        var fields = `amount=${amount}`
+        return this.doPost(this.instantBuyOrder, fields)
     }
 
     doGet(url_path) {
