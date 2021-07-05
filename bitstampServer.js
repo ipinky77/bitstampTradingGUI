@@ -135,7 +135,7 @@ class BitstampGUIServer {
 
                 // check if orders available
                 var resultCreate
-                orders = await this.client.getOpenOrders()
+                var orders = await this.client.getOpenOrders()
                 if (orders.length > 0) {
                     order = orders[0]
                     this.logInfo({ "open order": order }, 3)
@@ -187,7 +187,7 @@ class BitstampGUIServer {
                 var amount = balances[this.currentCurrency + "_available"]
                 var resultCreate
                 // check if orders available
-                orders = await this.client.getOpenOrders()
+                var orders = await this.client.getOpenOrders()
                 if (orders.length > 0) {
                     order = orders[0]
                     this.logInfo({ "open order": order }, 2)
@@ -687,7 +687,7 @@ class BitstampGUIServer {
             //console.log(result[order])
 
             //console.log(`Checking transactions: \t${transaction}`)
-            t = transactions[transaction].order_id
+            var t = transactions[transaction].order_id
             if (orderID == t) {
                 transactionFound = true
 

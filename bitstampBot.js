@@ -69,9 +69,9 @@ class BitstampBot {
             // if executeTrades then create limit buy order at low
             if (self.executeTrades) {
                 // calculate proper amount: usd - fee
-                self.logInfo(`Amount available to buy ${realAmount}`, 1)
+                self.logInfo(`Amount available to buy ${self.realAmount}`, 1)
 
-                var resultCreate = await self.client.createLimitBuyOrder(realAmount, self.low)
+                var resultCreate = await self.client.createLimitBuyOrder(self.realAmount, self.low)
                 self.orderId = resultCreate.id
                 self.logInfo({ "Created buy order": resultCreate }, 1)
                 if ("error" == resultCreate.status) {
