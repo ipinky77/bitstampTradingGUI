@@ -1,4 +1,4 @@
-const version = "1.2.0"
+const version = "1.3.0"
 console.log("bitstampBot.js", version)
 const BitstampClient = require("./bitstampClient.js")
 const fs = require('fs');
@@ -29,9 +29,9 @@ class BitstampBot {
         var result = await this.client.getAccountBalance(false)
         this.logInfo(result, 2)
         // this.amount = parseFloat(result[this.crypto + "_available"]) // to test
-        this.amount = parseFloat(result[this.currency + "_available"])
+        this.amount = parseFloat(result[this.currency + "_available"]).toFixed(4)
         this.fee = parseFloat(result["fee"])
-        this.realAmount = this.amount * (1 - this.fee / 100)
+        this.realAmount = (this.amount * (1 - this.fee / 100)).toFixed(4)
         const condAmount = 20 < this.amount
         const condTrades = this.executeTrades
         const condFile = fs.existsSync(this.configuration.path_bot_thresholds)
@@ -71,7 +71,7 @@ class BitstampBot {
                 // calculate proper amount: usd - fee
                 self.logInfo(`Amount available to buy ${self.realAmount}`, 1)
 
-                var resultCreate = await self.client.createLimitBuyOrder(self.realAmount, self.low)
+                var resultCreate = await self.client.createLimitBuyOrder((self.realAmount / self.low).toFixed(8), self.low)
                 self.orderId = resultCreate.id
                 self.logInfo({ "Created buy order": resultCreate }, 1)
                 if ("error" == resultCreate.status) {
@@ -117,12 +117,17 @@ class BitstampBot {
 
                         if (self.executeTrades) {
                             if (price >= self.high) {
-                                var resultCancel = await self.client.cancelOrder(self.orderId)
+                                var resultCancel = await self.client.doCancelOrder(self.orderId)
                                 self.logInfo(resultCancel, 3)
                                 self.logInfo("we have to buy high, cancelling existing order and buying instantly", 1)
+                                var result = await self.client.getAccountBalance(false)
+                                self.logInfo(result, 2)
+                                self.amount = parseFloat(result[self.currency + "_available"]).toFixed(4)
+                                self.logInfo(`amount we can spend ${self.amount}`, 3)
 
                                 var resultCreate = await self.client.createInstantBuyOrder(self.amount)
-                                self.logInfo(resultCreate, 3)
+                                connection.close()
+                                self.logInfo({ "instant buy order": resultCreate }, 1)
 
                             }
                         }
@@ -153,8 +158,9 @@ class BitstampBot {
                                 var result = await self.client.getOpenOrders()
                                 if (0 == result.length) {
                                     self.logInfo("no open orders, we bought low", 1)
+                                    connection.close()
                                 } else {
-                                    orderId = result[0].id
+                                    self.orderId = result[0].id
                                 }
                             }
                         } else {

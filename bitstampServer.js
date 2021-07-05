@@ -1,4 +1,4 @@
-const version = "1.2.0"
+const version = "1.3.0"
 console.log("bitstampServer.js", version)
 const BitstampClient = require("./bitstampClient.js")
 
@@ -108,14 +108,18 @@ class BitstampGUIServer {
                 if (resultCancel.type == 1) {
                     resultCreate = await this.client.createLimitSellOrder(resultCancel.amount, newPrice.toFixed(4))
                 } else {
-                    var balances = await this.client.getAccountBalance(false)
-                    amount = balances[this.currentCurrency + "_available"]
-                    crypto_original = balances[this.currentCrypto]
-
-                    let currency_available = amount * (1 - fee) // deduct fee already
-                    let newAmount = currency_available / newPrice
-                    this.logInfo(`new amount\t${newAmount}`, 2)
-                    resultCreate = await this.client.createLimitBuyOrder(newAmount.toFixed(4), newPrice.toFixed(4))
+                    // var balances = await this.client.getAccountBalance(false)
+                    // var amount = balances[this.currentCurrency + "_available"]
+                    // this.logInfo(`amount\t${amount}`, 2)
+                    // let currency_available = amount * (1 - fee / 100) // deduct fee already
+                    // this.logInfo(`currency_available\t${currency_available}`, 2)
+                    // let newAmount = currency_available / newPrice
+                    // this.logInfo(`new amount\t${newAmount}`, 2)
+                    var oldPrice = resultCancel.price
+                    var oldXRP = resultCancel.amount
+                    var oldUSD = oldPrice * oldXRP
+                    var newXRP = oldUSD / newPrice
+                    resultCreate = await this.client.createLimitBuyOrder(newXRP.toFixed(8), newPrice.toFixed(4))
                 }
                 this.logInfo({ "result from new order": resultCreate }, 3)
                 response.json(resultCreate)
@@ -137,7 +141,7 @@ class BitstampGUIServer {
                 var resultCreate
                 var orders = await this.client.getOpenOrders()
                 if (orders.length > 0) {
-                    order = orders[0]
+                    var order = orders[0]
                     this.logInfo({ "open order": order }, 3)
 
                     // type 0 = buy, type 1 = sell
@@ -189,7 +193,7 @@ class BitstampGUIServer {
                 // check if orders available
                 var orders = await this.client.getOpenOrders()
                 if (orders.length > 0) {
-                    order = orders[0]
+                    var order = orders[0]
                     this.logInfo({ "open order": order }, 2)
 
                     // type 0 = buy, type 1 = sell
