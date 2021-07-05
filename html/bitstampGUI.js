@@ -1,4 +1,4 @@
-const version = "1.2.0"
+const version = "1.2.1"
 console.log("bitstampGUI.js", version)
 var currentCurrency = ""
 var currentCrypto = ""
@@ -592,14 +592,11 @@ function changePage(id) {
 
     if (id == "currencyPairs") {
         getCurrencyPairs()
-        return
     }
 
     if (id == "Accounts") {
         getAccountsOverview()
         populateTransferAccounts()
-
-
     }
 
 
