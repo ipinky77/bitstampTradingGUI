@@ -25,21 +25,32 @@ class BitstampBot {
     async init() {
         var willRun = false
 
-        await this.readThresholds()
+
         var result = await this.client.getAccountBalance(false)
         this.logInfo(result, 2)
         // this.amount = parseFloat(result[this.crypto + "_available"]) // to test
         this.amount = parseFloat(result[this.currency + "_available"])
         this.fee = parseFloat(result["fee"])
         this.realAmount = this.amount * (1 - this.fee / 100)
-        if (20 < this.amount) {
+        const condAmount = 20 < this.amount
+        const condTrades = this.executeTrades
+        const condFile = fs.existsSync(this.configuration.path_bot_thresholds)
+        if (!condTrades || (condAmount && condFile)) {
             willRun = true
         }
-        if (!this.executeTrades) {
-            willRun = true
+        if (condTrades) {
+            if (condFile) {
+                // file does not contain high nor low
+                if (! await this.readThresholds()) {
+                    this.logInfo(`File "${this.configuration.path_bot_thresholds}" does not contain high and/or low value`, 1)
+                    willRun = false
+                }
+            } else {
+                this.logInfo(`Please make sure the file "${this.configuration.path_bot_thresholds}" exists`, 1)
+                willRun = false
+            }
         }
         this.willRun = willRun
-
     }
 
     async run() {
@@ -171,18 +182,23 @@ class BitstampBot {
 
 
         } else {
-            this.logInfo(`Bot won't run, check ${this.currency} balance ${configuration.executeTrades ? " or executeTrades flag in configuration" : ""}`, 1)
+            self.logInfo(`Bot won't run, check ${self.currency} balance ${self.configuration.executeTrades ? " or executeTrades flag in configuration" : ""}`, 1)
         }
 
     }
 
     async readThresholds() {
         const data = fs.readFileSync(this.configuration.path_bot_thresholds, 'utf8')
-        var params = data.split("\r")
-        this.high = parseFloat(params[0].split("=")[1])
-        this.low = parseFloat(params[1].split("=")[1])
-        this.logInfo({ "current bot threshold - high": this.high }, 2)
-        this.logInfo({ "current bot threshold - low": this.low }, 2)
+        if (0 <= data.indexOf("high") && 0 <= data.indexOf("low")) {
+            var params = data.split("\r")
+            this.high = parseFloat(params[0].split("=")[1])
+            this.low = parseFloat(params[1].split("=")[1])
+            this.logInfo({ "current bot threshold - high": this.high }, 2)
+            this.logInfo({ "current bot threshold - low": this.low }, 2)
+            return true
+        } else {
+            return false
+        }
     }
 
     logInfo(info, level) {

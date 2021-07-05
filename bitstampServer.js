@@ -389,14 +389,15 @@ class BitstampGUIServer {
 
             try {
                 // here we write a file
-                const data = fs.readFileSync(this.configuration.path_bot_thresholds, 'utf8')
-                var params = data.split("\r")
-                this.logInfo({ "current bot threshold - high": params[0].split("=")[1] }, 1)
-                this.logInfo({ "current bot threshold - low": params[1].split("=")[1] }, 1)
+                if (fs.existsSync(this.configuration.path_bot_thresholds)) {
+                    const data = fs.readFileSync(this.configuration.path_bot_thresholds, 'utf8')
+                    var params = data.split("\r")
+                    this.logInfo({ "current bot threshold - high": params[0].split("=")[1] }, 1)
+                    this.logInfo({ "current bot threshold - low": params[1].split("=")[1] }, 1)
 
-                var thresholds = { high: params[0].split("=")[1], low: params[1].split("=")[1] }
-                response.json(thresholds)
-
+                    var thresholds = { high: params[0].split("=")[1], low: params[1].split("=")[1] }
+                    response.json(thresholds)
+                }
 
             } catch (e) {
                 console.log(e)
