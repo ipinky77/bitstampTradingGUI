@@ -9,7 +9,7 @@
     <script src="html/bitstampGUI.js"></script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="version" content="1.1.7">
+    <meta name="version" content="1.2.0">
     <title>Bitstamp GUI</title>
 </head>
 <script>
@@ -30,15 +30,16 @@
 <body>
     <table>
         <tr>
-            <td>Account</td>
-            <td> <select name="account" id="account" onchange="changeAccount(this.options[this.selectedIndex].value)">
+            <td>Profile</td>
+            <td> <select name="profile" id="profile" onchange="changeProfile(this.options[this.selectedIndex].value)">
                 </select>
             </td>
             <td>Page</td>
-            <td><select name="account" id="account" onchange="changePage(this.options[this.selectedIndex].value)">
+            <td><select name="pages" id="page" onchange="changePage(this.options[this.selectedIndex].value)">
                     <option value="Trading">Trading</option>
                     <option value="currencyPairs">Currency pairs</option>
                     <option value="Transactions">Transactions</option>
+                    <option value="Accounts">Accounts/Transfers</option>
                 </select></td>
         </tr>
     </table>
@@ -316,10 +317,6 @@
 
             </tr>
         </table>
-        <input name="defaultAmount" id="defaultAmount" size="8em" value="">
-        <a href="javascript:setDefaultCurrencyAmount()">set default currency to calculate target crypto</a><br>
-        <input name="defaultSellPrice" id="defaultSellPrice" size="8em" value="">
-        <a href="javascript:setDefaultSellPrice()">set default Sell Price</a>
     </div>
     <div id="currencyPairs">
         <div id="currencyPairsContainer">
@@ -337,23 +334,21 @@
             </tr>
         </table>
         <div id="transactionsContainer">
+
         </div>
     </div>
     <div id="Accounts">
-        <table>
-            <tr>
-                <th>Account</th>
-                <th>Currencies</th>
-                <th>Amounts</th>
-            </tr>
-            <tr>
-                <td><span id="accountNames"></span></td>
-                <td><span id="accountCurrencies"></span></td>
-                <td><span id="accountCurrencyAmounts"></span></td>
-            </tr>
-
-        </table>
-        <div id="transactionsContainer">
+        <span id="accountsOverview"></span>
+        <div id="transfer">Transfer from <select id="fromAccount"
+                onchange="populateCurrencyToTransfer(this.options[this.selectedIndex].value)">
+                <option>default</option>
+            </select> to <select id="toAccount">
+                <option>default</option>
+            </select> <input id="transferAmount"></input>
+            <select id="transferCurrency">
+                <option>default</option>
+            </select>
+            <button onclick="javascript:transferFunds()">Do it</button>
         </div>
     </div>
 

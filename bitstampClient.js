@@ -1,5 +1,5 @@
 const version = "1.2.0"
-console.log("BitstampClient", version)
+console.log("bitstampClient.js", version)
 const utf8 = require("utf8")
 const crypto = require('crypto'); // responsible to create the nonce
 const https = require("https");
@@ -8,7 +8,7 @@ const uuid = require("uuid");
 const contentType = "application/x-www-form-urlencoded"
 
 
-class BitStampClient {
+class BitstampClient {
     signature = undefined
     timeStamp = undefined
     nonce = undefined
@@ -20,8 +20,8 @@ class BitStampClient {
 
         this.config = configuration
         this.server = this.config.server
-        this.api_key = this.config.defaultAccount.key
-        this.api_secret = this.config.defaultAccount.secret
+        this.api_key = this.config.defaultProfile.key
+        this.api_secret = this.config.defaultProfile.secret
 
         this.currency = "usd" // default currency
         this.crypto = "xrp" // default crypto
@@ -61,12 +61,12 @@ class BitStampClient {
         this.setUrls()
     }
 
-    setAccount(account) {
+    setProfile(profile) {
 
-        this.api_key = account.key
-        this.api_secret = account.secret
-        this.setCurrency(account.defaultCurrency)
-        this.setCrypto(account.defaultCrypto)
+        this.api_key = profile.key
+        this.api_secret = profile.secret
+        this.setCurrency(profile.defaultCurrency)
+        this.setCrypto(profile.defaultCrypto)
     }
 
     createTimeStamp() {
@@ -173,13 +173,10 @@ class BitStampClient {
     }
 
     // accountbalance doesn't need fields, so we default
-    async getAccountBalance(available = true) {
+    async getAccountBalance(returnAll = true) {
         var all = await this.doPost(this.accountBalance, "offset=1")
-        if (available) {
-            var balances = {}
-            balances[`${this.crypto}`] = all[`${this.crypto}_available`]
-            balances[`${this.currency}`] = all[`${this.currency}_available`]
-            return balances
+        if (returnAll) {
+            return all
         } else {
             // xrp_available: '52.04485451',
             // xrp_balance: '152.04485451',
@@ -192,7 +189,7 @@ class BitStampClient {
             balances[`${this.crypto}_reserved`] = all[`${this.crypto}_reserved`]
             balances[`${this.currency}_available`] = all[`${this.currency}_available`]
             balances[`${this.currency}_reserved`] = all[`${this.currency}_reserved`]
-
+            balances['fee'] = all[`${this.crypto}${this.currency}_fee`]
 
             return balances
         }
@@ -212,12 +209,12 @@ class BitStampClient {
     }
 
     doTransferToMain(subAccount, amount, currency) {
-        var fields = `subAccount=${subAccount}&amount=${amount}&currency=${currency}`
+        var fields = `subAccount=${subAccount}&amount=${amount}&currency=${currency.toUpperCase()}`
         return this.doPost(this.transferToMain, fields)
     }
 
     doTransferFromMain(subAccount, amount, currency) {
-        var fields = `subAccount=${subAccount}&amount=${amount}&currency=${currency}`
+        var fields = `subAccount=${subAccount}&amount=${amount}&currency=${currency.toUpperCase()}`
         return this.doPost(this.transferFromMain, fields)
     }
 
@@ -337,5 +334,5 @@ class BitStampClient {
 
 }
 
-module.exports = BitStampClient
+module.exports = BitstampClient
 

@@ -1,6 +1,6 @@
-const version = "1.1.8"
-console.log("bitstampServer", version)
-const BitStampClient = require("./bitstampClient.js")
+const version = "1.2.0"
+console.log("bitstampServer.js", version)
+const BitstampClient = require("./bitstampClient.js")
 
 //server.js
 const url = require('url')
@@ -22,28 +22,28 @@ class BitstampGUIServer {
 
     run() {
         var configuration = this.configuration
-        this.accounts = this.configuration.accounts
-        this.logInfo({ "accounts": this.accounts }, 3)
+        this.profiles = this.configuration.profiles
+        this.logInfo({ "profiles": this.profiles }, 3)
 
-        this.defaultAccountName = this.configuration.defaultAccount.name
-        this.logInfo({ "default account name": this.defaultAccountName }, 3)
-        var defaultAccountKey
-        for (var key in this.accounts) {
-            if (this.accounts[key].name == this.defaultAccountName) {
-                this.defaultAccountKey = key
+        this.defaultProfileName = this.configuration.defaultProfile.name
+        this.logInfo({ "default profile name": this.defaultProfileName }, 3)
+        this.defaultProfileKey
+        for (var key in this.profiles) {
+            if (this.profiles[key].name == this.defaultProfileName) {
+                this.defaultProfileKey = key
             }
         }
-        this.logInfo({ "default account key": defaultAccountKey }, 3)
-        this.currentAccountKey = defaultAccountKey
-        const defaultAccount = this.configuration.defaultAccount
-        this.logInfo({ "default account": defaultAccount }, 3)
+        this.logInfo({ "default profile key": this.defaultProfileKey }, 3)
+        this.currentProfileKey = this.defaultProfileKey
+        const defaultProfile = this.configuration.defaultProfile
+        this.logInfo({ "default profile": defaultProfile }, 3)
 
 
-        this.currentCurrency = defaultAccount.defaultCurrency.toLowerCase()
-        this.currentCrypto = defaultAccount.defaultCrypto.toLowerCase()
+        this.currentCurrency = defaultProfile.defaultCurrency.toLowerCase()
+        this.currentCrypto = defaultProfile.defaultCrypto.toLowerCase()
         this.logInfo({ "current currency": this.currentCurrency }, 3)
         this.logInfo({ "current crypto": this.currentCrypto }, 3)
-        this.client = new BitStampClient(this.configuration)
+        this.client = new BitstampClient(this.configuration)
 
         // const path = require('path')
 
@@ -76,10 +76,10 @@ class BitstampGUIServer {
 
         app.get('/', (request, response) => {
             this.logInfo("***** reloading page", 1)
-            this.client.setAccount(defaultAccount)
-            this.currentCurrency = defaultAccount.defaultCurrency.toLowerCase()
-            this.currentCrypto = defaultAccount.defaultCrypto.toLowerCase()
-            this.currentAccountKey = defaultAccountKey
+            this.client.setProfile(defaultProfile)
+            this.currentCurrency = defaultProfile.defaultCurrency.toLowerCase()
+            this.currentCrypto = defaultProfile.defaultCrypto.toLowerCase()
+            this.currentProfileKey = this.defaultProfileKey
 
             this.logInfo({ "current currency": this.currentCurrency }, 2)
             this.logInfo({ "current crypto": this.currentCrypto }, 2)
@@ -99,25 +99,25 @@ class BitstampGUIServer {
                 var id = params.get("id")
                 var fee = parseFloat(params.get("fee"))
                 var newPrice = parseFloat(params.get("newPrice"))
-                this.logInfo(`order ID to cancel\t${id}`, 1)
-                this.logInfo(`new Price\t${newPrice}`, 1)
-                this.logInfo(`fee\t${fee}`, 1)
+                this.logInfo(`order ID to cancel\t${id}`, 2)
+                this.logInfo(`new Price\t${newPrice}`, 2)
+                this.logInfo(`fee\t${fee}`, 2)
                 let resultCancel = await this.client.doCancelOrder(id)
-                this.logInfo({ "result from cancel": resultCancel }, 2)
+                this.logInfo({ "result from cancel": resultCancel }, 3)
                 var resultCreate
                 if (resultCancel.type == 1) {
                     resultCreate = await this.client.createLimitSellOrder(resultCancel.amount, newPrice.toFixed(4))
                 } else {
-                    var balances = await this.client.getAccountBalance()
-                    amount = balances[this.currentCurrency]
+                    var balances = await this.client.getAccountBalance(false)
+                    amount = balances[this.currentCurrency + "_available"]
                     crypto_original = balances[this.currentCrypto]
 
                     let currency_available = amount * (1 - fee) // deduct fee already
                     let newAmount = currency_available / newPrice
-                    this.logInfo(`new amount\t${newAmount}`, 1)
+                    this.logInfo(`new amount\t${newAmount}`, 2)
                     resultCreate = await this.client.createLimitBuyOrder(newAmount.toFixed(4), newPrice.toFixed(4))
                 }
-                this.logInfo({ "result from new order": resultCreate }, 2)
+                this.logInfo({ "result from new order": resultCreate }, 3)
                 response.json(resultCreate)
 
 
@@ -130,15 +130,15 @@ class BitstampGUIServer {
         app.get('/sellNow', async (request, response) => {
 
             try {
-                var balances = await this.client.getAccountBalance()
-                var amount = balances[this.currentCrypto]
+                var balances = await this.client.getAccountBalance(false)
+                var amount = balances[this.currentCrypto + "_available"]
 
                 // check if orders available
                 var resultCreate
                 orders = await this.client.getOpenOrders()
                 if (orders.length > 0) {
                     order = orders[0]
-                    this.logInfo({ "open order": order }, 2)
+                    this.logInfo({ "open order": order }, 3)
 
                     // type 0 = buy, type 1 = sell
 
@@ -148,25 +148,25 @@ class BitstampGUIServer {
                         await this.client.doCancelOrder(order.id)
                     }
 
-                    var balances = await this.client.getAccountBalance()
-                    var amount = balances[this.currentCrypto]
+                    var balances = await this.client.getAccountBalance(false)
+                    var amount = balances[this.currentCrypto + "_available"]
 
                     //{ crypto: '0.00000000', currency: '0.00' }
                     if (0 < amount) {
                         resultCreate = await this.client.createInstantSellOrder(amount)
 
-                        this.logInfo({ "instant sell result": resultCreate }, 1)
+                        this.logInfo({ "instant sell result": resultCreate }, 3)
 
                     } else {
                         this.logInfo("nothing to sell available", 1)
                     }
 
                 } else {
-                    this.logInfo("no open order to cancel", 1)
+                    this.logInfo("no open order to cancel", 2)
                     if (0 < amount) {
                         resultCreate = await this.client.createInstantSellOrder(amount)
 
-                        this.logInfo({ "instant sell result": resultCreate }, 1)
+                        this.logInfo({ "instant sell result": resultCreate }, 3)
 
                     } else {
                         this.logInfo("nothing to sell available", 1)
@@ -183,15 +183,14 @@ class BitstampGUIServer {
         app.get('/buyNow', async (request, response) => {
 
             try {
-                var balances = await this.client.getAccountBalance()
-                var amount = balances[this.currentCurrency]
+                var balances = await this.client.getAccountBalance(false)
+                var amount = balances[this.currentCurrency + "_available"]
                 var resultCreate
                 // check if orders available
                 orders = await this.client.getOpenOrders()
                 if (orders.length > 0) {
                     order = orders[0]
-                    this.logInfo("open order", 2)
-                    this.logInfo(order, 2)
+                    this.logInfo({ "open order": order }, 2)
 
                     // type 0 = buy, type 1 = sell
 
@@ -200,24 +199,24 @@ class BitstampGUIServer {
                         // buy order which needs be cancelled
                         await this.client.doCancelOrder(order.id)
                     }
-                    balances = await this.client.getAccountBalance()
-                    amount = balances[this.currentCurrency]
+                    balances = await this.client.getAccountBalance(false)
+                    amount = balances[this.currentCurrency + "_available"]
 
                     if (0 < amount) {
                         resultCreate = await this.client.createInstantBuyOrder(amount)
 
-                        this.logInfo({ "instant buy result": resultCreate }, 1)
+                        this.logInfo({ "instant buy result": resultCreate }, 3)
 
                     } else {
                         this.logInfo("no money to buy available", 1)
                     }
 
                 } else {
-                    this.logInfo("no open order to cancel", 1)
+                    this.logInfo("no open order to cancel", 2)
                     if (0 < amount) {
                         resultCreate = await this.client.createInstantBuyOrder(amount)
 
-                        this.logInfo({ "instant buy result": resultCreate }, 1)
+                        this.logInfo({ "instant buy result": resultCreate }, 3)
                     } else {
                         this.logInfo("no money to buy available", 1)
                     }
@@ -237,7 +236,7 @@ class BitstampGUIServer {
             try {
 
                 var fee = await this.client.getFee()
-                this.logInfo({ "current fee": fee }, 1)
+                this.logInfo({ "current fee": fee }, 2)
                 response.json(fee)
 
 
@@ -251,7 +250,7 @@ class BitstampGUIServer {
         app.get('/getCurrency', async (request, response) => {
 
             try {
-                this.logInfo({ "current currency": this.currentCurrency }, 1)
+                this.logInfo({ "current currency": this.currentCurrency }, 2)
                 response.json({ currency: this.currentCurrency.toUpperCase() })
             } catch (e) {
                 console.log(e)
@@ -268,7 +267,7 @@ class BitstampGUIServer {
                 var params = new URLSearchParams(responseURL.search);
 
                 this.currentCurrency = params.get("currency").toLowerCase()
-                this.logInfo({ "new currency": this.currentCurrency }, 1)
+                this.logInfo({ "new currency": this.currentCurrency }, 2)
                 this.client.setCurrency(this.currentCurrency)
                 response.json({ result: "success" })
             } catch (e) {
@@ -277,20 +276,22 @@ class BitstampGUIServer {
 
         });
 
-        app.get('/getAccounts', async (request, response) => {
+        app.get('/getProfiles', async (request, response) => {
 
             try {
-                this.logInfo({ "accounts": this.accounts }, 1)
-                this.logInfo({ "defaultAccount": this.defaultAccountKey }, 1)
-                var accounts = this.accounts
-                response.json({ accounts, currentAccount: this.currentAccountKey })
+                this.logInfo({ "profiles": this.profiles }, 3)
+                this.logInfo({ "defaultProfileKey": this.defaultProfileKey }, 3)
+                this.logInfo({ "currentProfileKey": this.currentProfileKey }, 3)
+                var profiles = this.profiles
+                var result = { profiles, currentProfile: this.currentProfileKey }
+                response.json(result)
             } catch (e) {
                 console.log(e)
             }
 
         });
 
-        app.get('/changeAccount', async (request, response) => {
+        app.get('/changeProfile', async (request, response) => {
 
             try {
                 var t = request.url
@@ -298,22 +299,22 @@ class BitstampGUIServer {
                 var responseURL = new URL(urlString)
                 var params = new URLSearchParams(responseURL.search);
 
-                var account = params.get("account")
-                this.logInfo({ "new account": account }, 1)
+                var profile = params.get("profile")
+                this.logInfo({ "new profile": profile }, 2)
                 response.json({ result: "success" })
-                var newAccount = {}
-                // fetch new account
-                for (var key in this.accounts) {
-                    if (key == account) {
-                        newAccount = this.accounts[key]
-                        this.currentAccountKey = key
+                var newProfile = {}
+                // fetch new profile
+                for (var key in this.profiles) {
+                    if (key == profile) {
+                        newProfile = this.profiles[key]
+                        this.currentProfileKey = key
                     }
                 }
-                this.logInfo({ "New account": newAccount }, 1)
+                this.logInfo({ "New profile": newProfile }, 2)
 
-                this.client.setAccount(newAccount)
-                this.currentCurrency = newAccount.defaultCurrency.toLowerCase()
-                this.currentCrypto = newAccount.defaultCrypto.toLowerCase()
+                this.client.setProfile(newProfile)
+                this.currentCurrency = newProfile.defaultCurrency.toLowerCase()
+                this.currentCrypto = newProfile.defaultCrypto.toLowerCase()
                 this.logInfo({ "current currency": this.currentCurrency }, 2)
                 this.logInfo({ "current crypto": this.currentCrypto }, 2)
 
@@ -327,7 +328,7 @@ class BitstampGUIServer {
         app.get('/getCrypto', async (request, response) => {
 
             try {
-                this.logInfo({ "current crypto": this.currentCrypto }, 1)
+                this.logInfo({ "current crypto": this.currentCrypto }, 2)
                 response.json({ crypto: this.currentCrypto.toUpperCase() })
             } catch (e) {
                 console.log(e)
@@ -345,8 +346,7 @@ class BitstampGUIServer {
                 var params = new URLSearchParams(responseURL.search);
 
                 this.currentCrypto = params.get("crypto").toLowerCase()
-                console.log("new crypto")
-                console.log(this.currentCrypto)
+                this.logInfo({ "new crypto": this.currentCrypto }, 2)
                 this.client.setCrypto(this.currentCrypto)
                 response.json({ result: "success" })
             } catch (e) {
@@ -364,11 +364,11 @@ class BitstampGUIServer {
                 var params = new URLSearchParams(responseURL.search);
 
                 var high = params.get("high")
-                this.logInfo(`new high\t${high}`, 1)
+                this.logInfo({ "new bot threshold - high": high }, 1)
                 var low = params.get("low")
-                this.logInfo(`new low\t${low}`, 1)
+                this.logInfo({ "new bot threshold - low": low }, 1)
                 // here we write a file
-                await fs.writeFile(this.configuration.path_bot_ini, 'high=' + high + "\rlow=" + low, function (err) {
+                await fs.writeFile(this.configuration.path_bot_thresholds, 'high=' + high + "\rlow=" + low, function (err) {
                     if (err) {
                         console.log(err);
                         response.json({ result: "failure" })
@@ -389,10 +389,10 @@ class BitstampGUIServer {
 
             try {
                 // here we write a file
-                const data = fs.readFileSync(this.configuration.path_bot_ini, 'utf8')
+                const data = fs.readFileSync(this.configuration.path_bot_thresholds, 'utf8')
                 var params = data.split("\r")
-                this.logInfo({ "bot current high": params[0] }, 1)
-                this.logInfo({ "bot current low": params[1] }, 1)
+                this.logInfo({ "current bot threshold - high": params[0].split("=")[1] }, 1)
+                this.logInfo({ "current bot threshold - low": params[1].split("=")[1] }, 1)
 
                 var thresholds = { high: params[0].split("=")[1], low: params[1].split("=")[1] }
                 response.json(thresholds)
@@ -411,11 +411,11 @@ class BitstampGUIServer {
                 // console.log(parts)
                 let result = await this.client.getOpenOrders()
                 if (result[0] === undefined) {
-                    this.logInfo("no open orders to return", 1)
+                    this.logInfo("no open orders to return", 2)
                     result = { "id": "", "buyPrice": "", type: "" }
                     response.json(result)
                 } else {
-                    this.logInfo({ "open order": result[0] }, 1)
+                    this.logInfo({ "open order": result[0] }, 2)
                     response.json(result[0])
                 }
 
@@ -430,7 +430,7 @@ class BitstampGUIServer {
 
             try {
                 var lastSellPrice = await this.getLastSellPrice()
-                this.logInfo({ "last sell price": lastSellPrice }, 1)
+                this.logInfo({ "last sell price": lastSellPrice }, 2)
                 response.json(lastSellPrice)
 
             } catch (e) {
@@ -443,7 +443,7 @@ class BitstampGUIServer {
 
             try {
                 var currentPrice = await this.getCurrentPrice()
-                this.logInfo({ "current price": currentPrice }, 1)
+                this.logInfo({ "current price": currentPrice }, 2)
                 response.json(currentPrice)
 
             } catch (e) {
@@ -457,7 +457,7 @@ class BitstampGUIServer {
             try {
 
                 let result = await this.client.getAccountBalance(false)
-                this.logInfo({ "account Balance": result }, 2)
+                this.logInfo({ "profile Balance": result }, 2)
                 // console.log("currencCrypto", this.currentCrypto, "this.currentCurrency", this.currentCurrency)
                 // convert universal
                 var balances = {
@@ -483,7 +483,7 @@ class BitstampGUIServer {
                 var params = new URLSearchParams(responseURL.search);
 
                 const dateFrom = new Date(params.get("dateFrom"))
-                this.logInfo({ "date from": dateFrom }, 1)
+                this.logInfo({ "date from": dateFrom }, 2)
 
                 var txs = await this.getTransactions(dateFrom)
                 response.json(txs)
@@ -495,7 +495,113 @@ class BitstampGUIServer {
         });
 
 
+        app.get('/getAccountsOverview', async (request, response) => {
 
+            try {
+                var result = await this.getAccountsOverview()
+
+                var mydata = new Array()
+                var accBalances = result.rearrangedAccountsBalances
+                for (var c in accBalances) {
+                    for (var a in accBalances[c]) {
+                        var e = { account: a, currency: c, available: accBalances[c][a].available, reserved: accBalances[c][a].reserved }
+                        mydata.push(e)
+                    }
+
+                }
+
+                response.json(mydata)
+
+            } catch (e) {
+                console.log(e)
+            }
+
+        });
+
+        // "/transferFunds?fromAccount=" + fromAccount + "&toAccount=" + toAccount + "&transferCurrency=" + transferCurrency + "&transferAmount=" + transferAmount
+        app.get('/transferFunds', async (request, response) => {
+            try {
+                var t = request.url
+                var urlString = "http://www.some.crap" + t
+                var responseURL = new URL(urlString)
+                var params = new URLSearchParams(responseURL.search);
+
+                const fromAccount = params.get("fromAccount")
+                const toAccount = params.get("toAccount")
+                const transferCurrency = params.get("transferCurrency")
+                const transferAmount = parseFloat(params.get("transferAmount"))
+                var fromAccountID = ""
+                var toAccountID = ""
+                this.logInfo({ fromAccount: fromAccount, toAccount: toAccount, transferCurrency: transferCurrency, transferAmount: transferAmount }, 2)
+
+                // get uniqueID for both accounts
+                for (var profile in this.profiles) {
+                    if (profile == fromAccount) {
+                        fromAccountID = this.profiles[profile].uniqueID
+                    }
+                    if (profile == toAccount) {
+                        toAccountID = this.profiles[profile].uniqueID
+                    }
+
+                }
+                this.logInfo({ fromAccountID: fromAccountID, toAccountID: toAccountID }, 2)
+
+                // set Main Account
+                var currentProfile = this.currentProfileKey
+                var newProfile = this.profiles["main"]
+                this.client.setProfile(newProfile)
+
+                // transferFunds
+                // from nonMain to nonMain
+                if ("main" != fromAccount && "main" != toAccount) {
+                    var resultToMain = await this.client.doTransferToMain(fromAccountID, transferAmount, transferCurrency)
+                    this.logInfo(resultToMain, 3)
+                    var resultFromMain = await this.client.doTransferFromMain(toAccountID, transferAmount, transferCurrency)
+                    this.logInfo(resultFromMain, 3)
+                    // revert to selected Account
+                    newProfile = this.profiles[currentProfile]
+                    this.client.setProfile(newProfile)
+                    if ("error" == resultToMain.status || "error" == resultFromMain.status) {
+                        response.json({ result: "failure" })
+                    } else {
+                        response.json({ result: "success" })
+                    }
+                }
+                // from main, ie. not required to move to main
+                if ("main" == fromAccount) {
+                    var resultFromMain = await this.client.doTransferFromMain(toAccountID, transferAmount, transferCurrency)
+                    this.logInfo(resultFromMain, 3)
+                    // revert to selected Account
+                    newProfile = this.profiles[currentProfile]
+                    this.client.setProfile(newProfile)
+                    if ("error" == resultFromMain.status) {
+                        response.json({ result: "failure" })
+                    } else {
+                        response.json({ result: "success" })
+                    }
+
+                }
+                // to main, ie. not required to move to toAccount
+                if ("main" == toAccount) {
+                    var resultToMain = await this.client.doTransferToMain(fromAccountID, transferAmount, transferCurrency)
+                    this.logInfo(resultToMain, 3)
+                    // revert to selected Account
+                    newProfile = this.profiles[currentProfile]
+                    this.client.setProfile(newProfile)
+                    if ("error" == resultToMain.status) {
+                        response.json({ result: "failure" })
+                    } else {
+                        response.json({ result: "success" })
+
+                    }
+                }
+
+            } catch (e) {
+                console.log(e)
+                response.json({ result: "failure" })
+            }
+
+        });
 
         //...
         app.get('/download', async (request, response) => {
@@ -506,7 +612,7 @@ class BitstampGUIServer {
             var params = new URLSearchParams(responseURL.search);
 
             const dateFrom = new Date(params.get("dateFrom"))
-            this.logInfo({ "date from": dateFrom }, 1)
+            this.logInfo({ "date from": dateFrom }, 2)
 
             var txs = await this.getTransactions(dateFrom)
             var fileData = ""
@@ -562,7 +668,7 @@ class BitstampGUIServer {
             // always output to file
 
             if ('object' == typeof (info)) {
-                info = JSON.stringify(info)
+                info = JSON.stringify(info, null, 4)
             }
             // here we write a file
             fs.appendFileSync(configuration.path_log, info);
@@ -596,7 +702,7 @@ class BitstampGUIServer {
         if (minPrice == 999999999999) {
             minPrice = NaN
         }
-        this.logInfo(`last minimum sell price\t${minPrice}`, 1)
+        this.logInfo(`last minimum sell price\t${minPrice}`, 2)
         return minPrice
 
     }
@@ -607,7 +713,7 @@ class BitstampGUIServer {
         var lowestPrice = -1
         var order_id = ""
         for (var transaction in transactions) {
-            console.log(transactions[transaction])
+            // console.log(transactions[transaction])
 
             var order_id = transactions[transaction].order_id
             var xrp = parseFloat(transactions[transaction][`${this.currentCrypto}`])
@@ -628,7 +734,7 @@ class BitstampGUIServer {
 
     async getCurrentPrice() {
         var ticker = await this.client.getHourlyTicker()
-        this.logInfo({ "current price, ticker": ticker }, 1)
+        this.logInfo({ "current price, ticker": ticker }, 2)
         return { "currentPrice": ticker.last }
     }
 
@@ -702,14 +808,132 @@ class BitstampGUIServer {
         // always output to file
 
         if ('object' == typeof (info)) {
-            info = JSON.stringify(info)
+            info = JSON.stringify(info, null, 4)
         }
         // here we write a file
         fs.appendFileSync(this.configuration.path_log, info);
         fs.appendFileSync(this.configuration.path_log, "\r");
     }
-}
 
+
+    async getAccountsOverview() {
+        var allAccountsBalances = {}
+        for (var a in this.configuration.profiles) {
+            if ("uniqueID" in this.configuration.profiles[a]) {
+                var profileName = this.configuration.profiles[a].name
+                await this.client.setProfile(this.configuration.profiles[a])
+                var result = await this.client.getAccountBalance(true)
+                allAccountsBalances[profileName] = result
+
+            }
+        }
+
+        var filteredProfilesBalances = {}
+        for (var a in allAccountsBalances) {
+            var filtered = this.getNonZeroBalances(allAccountsBalances[a])
+            filteredProfilesBalances[a] = filtered
+        }
+        // console.log("profile balances", filteredProfilesBalances)
+        // clean filteredProfilesBalances: add 0 if there's no reserved or no available
+        var cleanedAccountBalances = this.cleanAccountBalances(filteredProfilesBalances)
+
+        // console.log("profile balances", cleanedAccountBalances)
+
+        // rearrange cryptoBalances by profile
+        var rearrangedAccountsBalances = this.rearrangeAccountsBalances(cleanedAccountBalances)
+
+        // console.log(rearrangedAccountsBalances)
+
+        return { rearrangedAccountsBalances, cleanedAccountBalances }
+    }
+
+    getNonZeroBalances(balances) {
+        var filteredBalances = {}
+        for (var k in balances) {
+            var available = k.indexOf("available")
+            var reserved = k.indexOf("reserved")
+            if (0 < available || 0 < reserved) {
+                var value = parseFloat(balances[k])
+                if (0 < value) {
+                    filteredBalances[k] = parseFloat(balances[k])
+                }
+
+            }
+
+
+        }
+        return filteredBalances
+    }
+
+    cleanAccountBalances(balances) {
+
+        // first get all currencies
+        // loop profiles
+        var currencies = {}
+        for (var a in balances) {
+            // loop balances
+            for (var b in balances[a]) {
+                var currency = b.substring(0, b.indexOf("_"))
+                if (!(currency in currencies)) {
+                    currencies[currency] = currency
+                }
+            }
+        }
+        // then check if either _reserved or _available is missing if one of them is available
+        for (var a in balances) {
+            // loop balances
+            for (var c in currencies) {
+                if ((c + "_available") in balances[a]) {
+                    if (!((c + "_reserved") in balances[a])) {
+                        // add reserved
+                        balances[a][c + "_reserved"] = 0
+                    }
+                }
+                if ((c + "_reserved") in balances[a]) {
+                    if (!((c + "_available") in balances[a])) {
+                        // add available
+                        balances[a][c + "_available"] = 0
+                    }
+                }
+            }
+        }
+
+
+        return balances
+    }
+
+    rearrangeAccountsBalances(balances) {
+
+        var restructured = {}
+
+        // first get all currencies
+        // loop profiles
+        var currencies = {}
+        for (var a in balances) {
+            // loop balances
+            for (var b in balances[a]) {
+                var currency = b.substring(0, b.indexOf("_"))
+                if (!(currency in currencies)) {
+                    currencies[currency] = currency
+                }
+            }
+        }
+        // then restructure
+        for (var c in currencies) {
+            restructured[c] = {}
+            for (var a in balances) {
+                if ((c + "_available") in balances[a]) {
+                    var b = { reserved: balances[a][c + "_reserved"], available: balances[a][c + "_available"] }
+                    restructured[c][a] = b
+                }
+            }
+
+        }
+
+
+        return restructured
+    }
+}
 
 
 

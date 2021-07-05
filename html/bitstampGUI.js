@@ -1,9 +1,11 @@
-const version = "1.1.7"
+const version = "1.2.0"
 console.log("bitstampGUI.js", version)
 var currentCurrency = ""
 var currentCrypto = ""
-var currentAccount = ""
+var currentProfile = ""
 
+var profiles
+var accountOverview
 var availableCryptos = []
 var availableCurrencies = []
 var currencyPairs = { BTCUSD: { crypto: "BTC", currency: "USD" }, BTCGBP: { crypto: "BTC", currency: "GBP" }, BTCEUR: { crypto: "BTC", currency: "EUR" }, BTCUSDT: { crypto: "BTC", currency: "USDT" }, BTCUSDC: { crypto: "BTC", currency: "USDC" }, BTCPAX: { crypto: "BTC", currency: "PAX" }, XRPBTC: { crypto: "XRP", currency: "BTC" }, XRPUSD: { crypto: "XRP", currency: "USD" }, XRPGBP: { crypto: "XRP", currency: "GBP" }, XRPEUR: { crypto: "XRP", currency: "EUR" }, XRPUSDT: { crypto: "XRP", currency: "USDT" }, XRPPAX: { crypto: "XRP", currency: "PAX" }, UNIBTC: { crypto: "UNI", currency: "BTC" }, UNIUSD: { crypto: "UNI", currency: "USD" }, UNIEUR: { crypto: "UNI", currency: "EUR" }, LTCBTC: { crypto: "LTC", currency: "BTC" }, LTCUSD: { crypto: "LTC", currency: "USD" }, LTCGBP: { crypto: "LTC", currency: "GBP" }, LTCEUR: { crypto: "LTC", currency: "EUR" }, LINKBTC: { crypto: "LINK", currency: "BTC" }, LINKUSD: { crypto: "LINK", currency: "USD" }, LINKGBP: { crypto: "LINK", currency: "GBP" }, LINKEUR: { crypto: "LINK", currency: "EUR" }, LINKETH: { crypto: "LINK", currency: "ETH" }, XLMBTC: { crypto: "XLM", currency: "BTC" }, XLMUSD: { crypto: "XLM", currency: "USD" }, XLMGBP: { crypto: "XLM", currency: "GBP" }, XLMEUR: { crypto: "XLM", currency: "EUR" }, BCHBTC: { crypto: "BCH", currency: "BTC" }, BCHUSD: { crypto: "BCH", currency: "USD" }, BCHGBP: { crypto: "BCH", currency: "GBP" }, BCHEUR: { crypto: "BCH", currency: "EUR" }, AAVEBTC: { crypto: "AAVE", currency: "BTC" }, AAVEUSD: { crypto: "AAVE", currency: "USD" }, AAVEEUR: { crypto: "AAVE", currency: "EUR" }, ALGOBTC: { crypto: "ALGO", currency: "BTC" }, ALGOUSD: { crypto: "ALGO", currency: "USD" }, ALGOEUR: { crypto: "ALGO", currency: "EUR" }, COMPBTC: { crypto: "COMP", currency: "BTC" }, COMPUSD: { crypto: "COMP", currency: "USD" }, COMPEUR: { crypto: "COMP", currency: "EUR" }, SNXBTC: { crypto: "SNX", currency: "BTC" }, SNXUSD: { crypto: "SNX", currency: "USD" }, SNXEUR: { crypto: "SNX", currency: "EUR" }, BATBTC: { crypto: "BAT", currency: "BTC" }, BATUSD: { crypto: "BAT", currency: "USD" }, BATEUR: { crypto: "BAT", currency: "EUR" }, MKRBTC: { crypto: "MKR", currency: "BTC" }, MKRUSD: { crypto: "MKR", currency: "USD" }, MKREUR: { crypto: "MKR", currency: "EUR" }, ZRXBTC: { crypto: "ZRX", currency: "BTC" }, ZRXUSD: { crypto: "ZRX", currency: "USD" }, ZRXEUR: { crypto: "ZRX", currency: "EUR" }, YFIBTC: { crypto: "YFI", currency: "BTC" }, YFIUSD: { crypto: "YFI", currency: "USD" }, YFIEUR: { crypto: "YFI", currency: "EUR" }, UMABTC: { crypto: "UMA", currency: "BTC" }, UMAUSD: { crypto: "UMA", currency: "USD" }, UMAEUR: { crypto: "UMA", currency: "EUR" }, OMGBTC: { crypto: "OMG", currency: "BTC" }, OMGUSD: { crypto: "OMG", currency: "USD" }, OMGGBP: { crypto: "OMG", currency: "GBP" }, OMGEUR: { crypto: "OMG", currency: "EUR" }, KNCBTC: { crypto: "KNC", currency: "BTC" }, KNCUSD: { crypto: "KNC", currency: "USD" }, KNCEUR: { crypto: "KNC", currency: "EUR" }, CRVBTC: { crypto: "CRV", currency: "BTC" }, CRVUSD: { crypto: "CRV", currency: "USD" }, CRVEUR: { crypto: "CRV", currency: "EUR" }, AUDIOBTC: { crypto: "AUDIO", currency: "BTC" }, AUDIOUSD: { crypto: "AUDIO", currency: "USD" }, AUDIOEUR: { crypto: "AUDIO", currency: "EUR" }, GRTUSD: { crypto: "GRT", currency: "USD" }, GRTEUR: { crypto: "GRT", currency: "EUR" }, DAIUSD: { crypto: "DAI", currency: "USD" }, GUSDUSD: { crypto: "GUSD", currency: "USD" }, GBPUSD: { crypto: "GBP", currency: "USD" }, GBPEUR: { crypto: "GBP", currency: "EUR" }, EURUSD: { crypto: "EUR", currency: "USD" }, ETHBTC: { crypto: "ETH", currency: "BTC" }, ETHUSD: { crypto: "ETH", currency: "USD" }, ETHGBP: { crypto: "ETH", currency: "GBP" }, ETHEUR: { crypto: "ETH", currency: "EUR" }, ETH2ETH: { crypto: "ETH", currency: "2ETH" }, ETHUSDT: { crypto: "ETH", currency: "USDT" }, ETHUSDC: { crypto: "ETH", currency: "USDC" }, ETHPAX: { crypto: "ETH", currency: "PAX" }, USDTUSD: { crypto: "USDT", currency: "USD" }, USDTEUR: { crypto: "USDT", currency: "EUR" }, USDCUSD: { crypto: "USDC", currency: "USD" }, USDCEUR: { crypto: "USDC", currency: "EUR" }, USDCUSDT: { crypto: "USDC", currency: "USDT" }, PAXUSD: { crypto: "PAX", currency: "USD" }, PAXGBP: { crypto: "PAX", currency: "GBP" }, PAXEUR: { crypto: "PAX", currency: "EUR" } }
@@ -13,7 +15,7 @@ var currencyPairs = { BTCUSD: { crypto: "BTC", currency: "USD" }, BTCGBP: { cryp
 // }
 function init() {
     changePage("Trading")
-    getAccounts()
+    getProfiles()
     getCurrency()
     getCrypto()
 
@@ -35,11 +37,11 @@ function init() {
     readBotThresholds()
 }
 
-function changeAccount(account) {
+function changeProfile(profile) {
 
-    console.log("new account: " + account)
+    console.log("new profile: " + profile)
 
-    var scriptUrl = "/changeAccount?account=" + account;
+    var scriptUrl = "/changeProfile?profile=" + profile;
     $.ajax({
         url: scriptUrl,
         type: 'get',
@@ -49,14 +51,14 @@ function changeAccount(account) {
             result = JSON.parse(data)
         }, timeout: 30000
     });
-    currentAccount = account
+    currentProfile = profile
     init()
-    alert('account changed')
+    alert('profile changed')
 }
 
-function getAccounts() {
+function getProfiles() {
     var result
-    var scriptUrl = "/getAccounts";
+    var scriptUrl = "/getProfiles";
     $.ajax({
         url: scriptUrl,
         type: 'get',
@@ -68,27 +70,27 @@ function getAccounts() {
     });
 
     console.log(result)
+    profiles = result.profiles
+    // update Profile Switcher
+    const profileKeys = Object.keys(result.profiles)
+    console.log(profileKeys)
 
-    // update Account Switcher
-    const accountKeys = Object.keys(result.accounts)
-    console.log(accountKeys)
-
-    var accountOptions = {}
-    accountKeys.forEach(addAccount)
-    var accountOptions
-    function addAccount(item) {
-        accountOptions[item] = result.accounts[item].name
+    var profileOptions = {}
+    profileKeys.forEach(addProfile)
+    var profileOptions
+    function addProfile(item) {
+        profileOptions[item] = result.profiles[item].name
     }
 
-    var $el = $("#account");
+    var $el = $("#profile");
     $el.empty(); // remove old options
 
-    for (account in accountOptions) {
+    for (profile in profileOptions) {
         $el.append($("<option></option>")
-            .attr("value", account).text(result.accounts[account].name));
+            .attr("value", profile).text(result.profiles[profile].name));
 
     }
-    $("#account").val(result.currentAccount);
+    $("#profile").val(result.currentProfile);
 
 }
 
@@ -514,16 +516,6 @@ function sellNow() {
     console.log(result)
 }
 
-
-function setDefaultCurrencyAmount() {
-    $("#currency_reserved").text($("#defaultAmount").val())
-    $("#currency_available").text("0")
-}
-
-function setDefaultSellPrice() {
-    $("#sellPrice").text($("#defaultSellPrice").val())
-}
-
 function reduceLists(selectedCurrency, selectedCrypto) {
     availableCryptos = []
     availableCurrencies = []
@@ -595,37 +587,17 @@ function setCurrencyOptions(selectedCrypto, backendRefresh) {
 }
 
 function changePage(id) {
-    const pages = { Trading, currencyPairs, Transactions }
+    const pages = { Trading, currencyPairs, Transactions, Accounts }
 
 
     if (id == "currencyPairs") {
-        // show list ordered by crypto
-        var byCrypto = ["<b>Pairs by Crypto</b>"]
-        for ([key, value] of Object.entries(currencyPairs)) {
-            byCrypto.push("<span class='left'>" + value.crypto + "</span><span class='right'>" + value.currency + "</span>")
-        }
-        byCrypto.sort()
+        getCurrencyPairs()
+        return
+    }
 
-        $("#pairsByCrypto").html(byCrypto.join("<br>"));        // show list ordered by currency
-
-
-        byCurrency = []
-        for ([key, value] of Object.entries(currencyPairs)) {
-            e = ["<span class='left'>" + value.crypto + "</span><span class='right'>" + value.currency + "</span>", value.currency + " / " + value.crypto]
-            byCurrency.push(e)
-        }
-
-        byCurrency.sort(function (a, b) {
-            if (a[1] < b[1]) return -1;
-            if (a[1] > b[1]) return 1;
-            return 0;
-        })
-        var byCurrencySorted = ["<b>Pairs by Currency</b>"]
-        for (var i = 0; i < byCurrency.length; i++) {
-            byCurrencySorted.push(byCurrency[i][0])
-        }
-
-        $("#pairsByCurrency").html(byCurrencySorted.join("<br>"));        // show list ordered by currency
+    if (id == "Accounts") {
+        getAccountsOverview()
+        populateTransferAccounts()
 
 
     }
@@ -639,6 +611,149 @@ function changePage(id) {
         }
     }
 
+}
+
+function populateCurrencyToTransfer(accountFrom) {
+
+    // get account name
+    var accountName = profiles[accountFrom].name
+
+    var $c = $("#transferCurrency");
+    $c.empty(); // remove old options
+    for (var i in accountOverview) {
+        if (accountName == accountOverview[i].account && 0 < accountOverview[i].available) {
+            $c.append($("<option></option>")
+                .attr("value", accountOverview[i].currency).text(accountOverview[i].currency.toUpperCase()));
+
+        }
+    }
+
+    populateTransferAccounts()
+
+    // remove option from toAccount
+    $("#toAccount option[value='" + accountFrom + "']").each(function () {
+        $(this).remove();
+    });
+}
+
+function populateTransferAccounts() {
+
+    // get selected fromAccount
+    var fromAccount = $("#fromAccount").val();
+    // populate form with from/to/currency
+    var $from = $("#fromAccount");
+    var $to = $("#toAccount");
+    $from.empty(); // remove old options
+    $to.empty(); // remove old options
+
+    $from.append($("<option></option>")
+        .attr("value", "default").text("select from Account"));
+    $to.append($("<option></option>")
+        .attr("value", "default").text("select to Account"));
+
+    for (var profile in profiles) {
+        if ('uniqueID' in profiles[profile]) {
+            var accountName = profiles[profile].name
+            for (var i in accountOverview) {
+                if (accountName == accountOverview[i].account && 0 < accountOverview[i].available) {
+                    $from.append($("<option></option>")
+                        .attr("value", profile).text(profiles[profile].name));
+                    break
+
+                }
+            }
+            $to.append($("<option></option>")
+                .attr("value", profile).text(profiles[profile].name));
+        }
+    }
+    if ("" != fromAccount) {
+        $("#fromAccount").val(fromAccount);
+    } else {
+        $("#fromAccount").val("default");
+    }
+
+}
+
+function transferFunds() {
+    var fromAccount = $("#fromAccount").val();
+    var toAccount = $("#toAccount").val();
+    var transferCurrency = $("#transferCurrency").val()
+    var transferAmount = $("#transferAmount").val()
+
+    if (isNaN(transferAmount)) {
+        alert("Please enter a valid number in the amount field")
+        return
+    }
+
+    // if all is fine initiate transfer
+    var result
+    var scriptUrl = "/transferFunds?fromAccount=" + fromAccount + "&toAccount=" + toAccount + "&transferCurrency=" + transferCurrency + "&transferAmount=" + transferAmount
+    console.log(scriptUrl)
+    $.ajax({
+        url: scriptUrl,
+        type: 'get',
+        dataType: 'html',
+        async: false,
+        success: function (data) {
+            console.log(data)
+            result = JSON.parse(data)
+        }, timeout: 30000
+    });
+    console.log(result)
+
+    if ("success" == result.result) {
+        getAccountsOverview()
+    }
+}
+
+
+function getAccountsOverview() {
+    var result
+    var scriptUrl = "/getAccountsOverview"
+    console.log(scriptUrl)
+    $.ajax({
+        url: scriptUrl,
+        type: 'get',
+        dataType: 'html',
+        async: false,
+        success: function (data) {
+            console.log(data)
+            result = JSON.parse(data)
+        }, timeout: 30000
+    });
+    console.log(result)
+    accountOverview = result
+    createOverviewTable(false)
+}
+
+function getCurrencyPairs() {
+    // show list ordered by crypto
+    var byCrypto = ["<b>Pairs by Crypto</b>"]
+    for ([key, value] of Object.entries(currencyPairs)) {
+        byCrypto.push("<span class='left'>" + value.crypto + "</span><span class='right'>" + value.currency + "</span>")
+    }
+    byCrypto.sort()
+
+    $("#pairsByCrypto").html(byCrypto.join("<br>"));        // show list ordered by currency
+
+
+    byCurrency = []
+    for ([key, value] of Object.entries(currencyPairs)) {
+        e = ["<span class='left'>" + value.crypto + "</span><span class='right'>" + value.currency + "</span>", value.currency + " / " + value.crypto]
+        byCurrency.push(e)
+    }
+
+    byCurrency.sort(function (a, b) {
+        if (a[1] < b[1]) return -1;
+        if (a[1] > b[1]) return 1;
+        return 0;
+    })
+    var byCurrencySorted = ["<b>Pairs by Currency</b>"]
+    for (var i = 0; i < byCurrency.length; i++) {
+        byCurrencySorted.push(byCurrency[i][0])
+    }
+
+    $("#pairsByCurrency").html(byCurrencySorted.join("<br>"));        // show list ordered by currency
 }
 
 
@@ -666,7 +781,7 @@ function getTransactions() {
         });
         console.log(result)
 
-        var table = createTable(result);
+        var table = createPairsTable(result);
         $("#transactionsContainer").html(table);
         var date = $("#dateFrom").val()
         $("#download").attr('href', "/download?dateFrom=" + date)
@@ -678,7 +793,7 @@ function getTransactions() {
 }
 
 
-function createTable(mydata) {
+function createPairsTable(mydata) {
 
     var table = "<table border='1'>";
     var tblHeader = "<tr>";
@@ -725,14 +840,75 @@ function createTable(mydata) {
         tblRow = ""
     }
 
-    // $.each(mydata, function (index, value) {
-    //     var TableRow = "<tr>";
-    //     $.each(value, function (key, val) {
-    //         TableRow += "<td>" + val + "</td>";
-    //     });
-    //     TableRow += "</tr>";
-    //     $(table).append(TableRow);
-    // });
     return table;
+};
+
+function createOverviewTable(byAccount) {
+    var mydata = accountOverview
+    // mydata.sort(function (a, b) { return a - b });
+    var table = ""
+    var currencyTotals = {}
+    if (byAccount) {
+        // sort by account
+        mydata.sort(function (a, b) {
+            if (a.account == b.account) {
+                return a.currency > b.currency ? 1 : -1
+            }
+            return a.account > b.account ? 1 : -1
+        })
+
+        // get proper header
+        table = '<table><tr class="double_bottom_border"><th class="row_label columnAccount">Account</th><th class="columnCurrency row_label"><a href="javascript:createOverviewTable(false)">Currency</a></th><th class="column_label">available</th><th class="column_label">reserved</th></tr>'
+        for (var i = 0; i < mydata.length; i++) {
+            if (i < (mydata.length - 1) && mydata[i + 1].account != mydata[i].account) {
+                table += '<tr class="bottom_border"><td class="row_label columnAccount">' + mydata[i].account + ' </td><td class="columnCurrency">' + mydata[i].currency.toUpperCase() + '</td><td class="value columnAmount">' + mydata[i].available.toFixed(6) + ' </td><td class="value columnAmount">' + mydata[i].reserved.toFixed(6) + '</td></tr>'
+            } else {
+                table += '<tr><td class="row_label columnAccount">' + mydata[i].account + ' </td><td class="columnCurrency">' + mydata[i].currency.toUpperCase() + '</td><td class="value columnAmount">' + mydata[i].available.toFixed(6) + ' </td><td class="value columnAmount">' + mydata[i].reserved.toFixed(6) + '</td></tr>'
+            }
+        }
+        // $("#transfer").hide()
+    } else {
+        // sort by currency
+        mydata = mydata.sort(function (a, b) {
+            if (a.currency == b.currency) {
+                return a.account > b.account ? 1 : -1
+            } return a.currency > b.currency ? 1 : -1
+        })
+
+        // get totals
+        for (var i = 0; i < mydata.length; i++) {
+            if (mydata[i].currency in currencyTotals) {
+                // add to the total
+                var at = mydata[i].available + currencyTotals[mydata[i].currency].available
+                var rt = mydata[i].reserved + currencyTotals[mydata[i].currency].reserved
+                currencyTotals[mydata[i].currency] = { available: at, reserved: rt }
+            } else {
+                // create the element 
+                currencyTotals[mydata[i].currency] = { available: mydata[i].available, reserved: mydata[i].reserved }
+            }
+
+        }
+
+
+        // get proper header
+        table = '<table><tr class="double_bottom_border"><th class="columnCurrency row_label">Currency</th><th class="row_label"><a href="javascript:createOverviewTable(true)">Account</a></th><th class="column_label">available</th><th class="column_label">reserved</th></tr>'
+
+        var ct = ""
+        for (var i = 0; i < mydata.length; i++) {
+            if (ct != "" && ct != mydata[i].currency) {
+                // add total
+                table += '<tr class="double_bottom_border top_border"><td class="row_label">' + ct.toUpperCase() + ' </td><td class="row_label">Total</td><td class="value total">' + currencyTotals[mydata[i - 1].currency].available.toFixed(6) + ' </td><td class="value total">' + currencyTotals[mydata[i - 1].currency].reserved.toFixed(6) + '</td></tr>'
+            }
+
+            table += '<tr><td class="row_label">' + mydata[i].currency.toUpperCase() + ' </td><td class="columnAccount">' + mydata[i].account + '</td><td class="value columnAmount">' + mydata[i].available.toFixed(6) + ' </td><td class="value columnAmount">' + mydata[i].reserved.toFixed(6) + '</td></tr>'
+            ct = mydata[i].currency
+        }
+        table += '<tr class="double_bottom_border top_border"><td class="row_label">' + ct.toUpperCase() + ' </td><td class="row_label bottom_border">Total</td><td class="value total">' + currencyTotals[ct].available.toFixed(6) + ' </td><td class="value total">' + currencyTotals[ct].reserved.toFixed(6) + '</td></tr>'
+
+        // $("#transfer").show()
+    }
+
+    $("#accountsOverview").html(table)
+
 };
 

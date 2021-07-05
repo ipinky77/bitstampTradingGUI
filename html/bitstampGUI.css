@@ -1,5 +1,5 @@
 /*
-    version 1.1.7
+    version 1.2.0
 */
 
 body {
@@ -64,9 +64,19 @@ tr.top_border td{
     border-top: 1px solid black;
 }
 
-tr.bottom_border td{
+tr.bottom_border td, tr.bottom_border th{
     border-bottom: 1px solid black;
 }
+
+tr.double_bottom_border td, tr.double_bottom_border th{
+    border-bottom: 2px solid black;
+}
+
+
+tr.top_border td{
+    border-top: 1px solid black;
+}
+
 
 #nothing{
     margin: 0;
@@ -123,7 +133,7 @@ width: 6em;
   text-align: right;
 }
 
-#currencyPairs{
+#currencyPairs, #Accounts{
     display: none;
 
 }
@@ -158,4 +168,25 @@ width: 6em;
 
 #transactionsContainer td, #transactionsContainer th{
     padding: 10px
+}
+
+.columnAccount{
+    width: 175px
+}
+
+.columnCurrency{
+    width: 175px
+}
+
+
+.columnAmount{
+    width: 120px
+}
+
+.total{
+    font-weight: bold;   
+}
+
+#transfer{
+    padding: 20px
 }
