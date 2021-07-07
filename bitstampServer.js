@@ -3,6 +3,7 @@ console.log("bitstampServer.js", version)
 const BitstampClient = require("./bitstampClient.js")
 
 //server.js
+// const bodyParser = require('body-parser');
 const url = require('url')
 var express = require('express');
 var app = express();
@@ -59,11 +60,21 @@ class BitstampGUIServer {
             resave: false,
         }))
 
+        // app.use(bodyParser.json());
+
+        // app.use(bodyParser.urlencoded({
+        //     extended: true
+        //   }));
+
+
+        app.use(express.json())
+        app.use(express.urlencoded({ extended: true }))
+
         // app.use(express.static('./html')); // set default directory
 
         //setting the port.
-        var server = app.listen(3003, function (err) {
-            app.use(express.static(__dirname + '/'));
+        app.listen(3003, function (err) {
+            app.use(express.static(__dirname + '/html'));
             if (err) {
                 console.log(err.message)
             }
@@ -88,17 +99,13 @@ class BitstampGUIServer {
         });
 
 
-        app.get('/cancelOrder', async (request, response) => {
+        app.post('/cancelOrder', async (request, response) => {
 
             try {
-                var t = request.url
-                var urlString = "http://www.some.crap" + t
-                var responseURL = new URL(urlString)
-                var params = new URLSearchParams(responseURL.search);
-
-                var id = params.get("id")
-                var fee = parseFloat(params.get("fee"))
-                var newPrice = parseFloat(params.get("newPrice"))
+                var params = request.body
+                var id = params.id
+                var fee = params.fee
+                var newPrice = params.newPrice
                 this.logInfo(`order ID to cancel\t${id}`, 2)
                 this.logInfo(`new Price\t${newPrice}`, 2)
                 this.logInfo(`fee\t${fee}`, 2)
@@ -262,15 +269,11 @@ class BitstampGUIServer {
 
         });
 
-        app.get('/setCurrency', async (request, response) => {
+        app.post('/setCurrency', async (request, response) => {
 
             try {
-                var t = request.url
-                var urlString = "http://www.some.crap" + t
-                var responseURL = new URL(urlString)
-                var params = new URLSearchParams(responseURL.search);
-
-                this.currentCurrency = params.get("currency").toLowerCase()
+                let data = request.body
+                this.currentCurrency = data.currency.toLowerCase()
                 this.logInfo({ "new currency": this.currentCurrency }, 2)
                 this.client.setCurrency(this.currentCurrency)
                 response.json({ result: "success" })
@@ -279,6 +282,7 @@ class BitstampGUIServer {
             }
 
         });
+
 
         app.get('/getProfiles', async (request, response) => {
 
@@ -295,15 +299,12 @@ class BitstampGUIServer {
 
         });
 
-        app.get('/changeProfile', async (request, response) => {
+        app.post('/changeProfile', async (request, response) => {
 
             try {
-                var t = request.url
-                var urlString = "http://www.some.crap" + t
-                var responseURL = new URL(urlString)
-                var params = new URLSearchParams(responseURL.search);
+                var params = request.body
 
-                var profile = params.get("profile")
+                var profile = params.profile
                 this.logInfo({ "new profile": profile }, 2)
                 response.json({ result: "success" })
                 var newProfile = {}
@@ -341,15 +342,11 @@ class BitstampGUIServer {
         });
 
 
-        app.get('/setCrypto', async (request, response) => {
+        app.post('/setCrypto', async (request, response) => {
 
             try {
-                var t = request.url
-                var urlString = "http://www.some.crap" + t
-                var responseURL = new URL(urlString)
-                var params = new URLSearchParams(responseURL.search);
-
-                this.currentCrypto = params.get("crypto").toLowerCase()
+                let data = request.body
+                this.currentCrypto = data.crypto.toLowerCase()
                 this.logInfo({ "new crypto": this.currentCrypto }, 2)
                 this.client.setCrypto(this.currentCrypto)
                 response.json({ result: "success" })
@@ -359,20 +356,12 @@ class BitstampGUIServer {
 
         });
 
-        app.get('/writeBotThresholds', async (request, response) => {
+        app.post('/writeBotThresholds', async (request, response) => {
 
             try {
-                var t = request.url
-                var urlString = "http://www.some.crap" + t
-                var responseURL = new URL(urlString)
-                var params = new URLSearchParams(responseURL.search);
+                let thresholds = request.body
 
-                var high = params.get("high")
-                this.logInfo({ "new bot threshold - high": high }, 1)
-                var low = params.get("low")
-                this.logInfo({ "new bot threshold - low": low }, 1)
-                // here we write a file
-                await fs.writeFile(this.configuration.path_bot_thresholds, 'high=' + high + "\rlow=" + low, function (err) {
+                await fs.writeFile(this.configuration.path_bot_thresholds, JSON.stringify(thresholds, null, 4), function (err) {
                     if (err) {
                         console.log(err);
                         response.json({ result: "failure" })
@@ -389,18 +378,54 @@ class BitstampGUIServer {
 
         });
 
+        app.post('/writeMasks', async (request, response) => {
+
+            try {
+                let thresholds = request.body
+
+                await fs.writeFile(this.configuration.path_masks, JSON.stringify(thresholds, null, 4), function (err) {
+                    if (err) {
+                        console.log(err);
+                        response.json({ result: "failure" })
+                    }
+                    logInfo("masks have been written", 1);
+                    response.json({ result: "success" })
+                });
+            } catch (e) {
+                console.log(e)
+            }
+        });
+
         app.get('/readBotThresholds', async (request, response) => {
 
             try {
-                // here we write a file
+                // here we read a file
                 if (fs.existsSync(this.configuration.path_bot_thresholds)) {
-                    const data = fs.readFileSync(this.configuration.path_bot_thresholds, 'utf8')
-                    var params = data.split("\r")
-                    this.logInfo({ "current bot threshold - high": params[0].split("=")[1] }, 1)
-                    this.logInfo({ "current bot threshold - low": params[1].split("=")[1] }, 1)
+                    const data = fs.readFileSync(this.configuration.path_bot_thresholds)
 
-                    var thresholds = { high: params[0].split("=")[1], low: params[1].split("=")[1] }
+                    var thresholds = JSON.parse(data)
                     response.json(thresholds)
+                }
+
+            } catch (e) {
+                console.log(e)
+                response.json({ result: "failure" })
+            }
+
+        });
+
+        app.get('/readMasks', async (request, response) => {
+
+            try {
+                // here we read a file
+                if (fs.existsSync(this.configuration.path_masks)) {
+                    const data = fs.readFileSync(this.configuration.path_masks)
+
+                    var masks = JSON.parse(data)
+                    this.logInfo(masks, 2)
+                    response.json(masks)
+                } else {
+                    response.json({ result: "failure" })
                 }
 
             } catch (e) {
@@ -479,17 +504,12 @@ class BitstampGUIServer {
         });
 
 
-        app.get('/getTransactions', async (request, response) => {
+        app.post('/getTransactions', async (request, response) => {
 
             try {
-                var t = request.url
-                var urlString = "http://www.some.crap" + t
-                var responseURL = new URL(urlString)
-                var params = new URLSearchParams(responseURL.search);
-
-                const dateFrom = new Date(params.get("dateFrom"))
-                this.logInfo({ "date from": dateFrom }, 2)
-
+                let data = request.body
+                this.logInfo(data, 2)
+                var dateFrom = new Date(data.dateFrom)
                 var txs = await this.getTransactions(dateFrom)
                 response.json(txs)
 
@@ -523,28 +543,18 @@ class BitstampGUIServer {
 
         });
 
-        // "/transferFunds?fromAccount=" + fromAccount + "&toAccount=" + toAccount + "&transferCurrency=" + transferCurrency + "&transferAmount=" + transferAmount
-        app.get('/transferFunds', async (request, response) => {
+        app.post('/transferFunds', async (request, response) => {
             try {
-                var t = request.url
-                var urlString = "http://www.some.crap" + t
-                var responseURL = new URL(urlString)
-                var params = new URLSearchParams(responseURL.search);
-
-                const fromAccount = params.get("fromAccount")
-                const toAccount = params.get("toAccount")
-                const transferCurrency = params.get("transferCurrency")
-                const transferAmount = parseFloat(params.get("transferAmount"))
+                var params = request.body
+                this.logInfo(params, 2)
+                // get uniqueID for both accounts
                 var fromAccountID = ""
                 var toAccountID = ""
-                this.logInfo({ fromAccount: fromAccount, toAccount: toAccount, transferCurrency: transferCurrency, transferAmount: transferAmount }, 2)
-
-                // get uniqueID for both accounts
                 for (var profile in this.profiles) {
-                    if (profile == fromAccount) {
+                    if (profile == params.fromAccount) {
                         fromAccountID = this.profiles[profile].uniqueID
                     }
-                    if (profile == toAccount) {
+                    if (profile == params.toAccount) {
                         toAccountID = this.profiles[profile].uniqueID
                     }
 
@@ -558,10 +568,10 @@ class BitstampGUIServer {
 
                 // transferFunds
                 // from nonMain to nonMain
-                if ("main" != fromAccount && "main" != toAccount) {
-                    var resultToMain = await this.client.doTransferToMain(fromAccountID, transferAmount, transferCurrency)
+                if ("main" != params.fromAccount && "main" != params.toAccount) {
+                    var resultToMain = await this.client.doTransferToMain(fromAccountID, params.transferAmount, params.transferCurrency)
                     this.logInfo(resultToMain, 3)
-                    var resultFromMain = await this.client.doTransferFromMain(toAccountID, transferAmount, transferCurrency)
+                    var resultFromMain = await this.client.doTransferFromMain(toAccountID, params.transferAmount, params.transferCurrency)
                     this.logInfo(resultFromMain, 3)
                     // revert to selected Account
                     newProfile = this.profiles[currentProfile]
@@ -573,8 +583,8 @@ class BitstampGUIServer {
                     }
                 }
                 // from main, ie. not required to move to main
-                if ("main" == fromAccount) {
-                    var resultFromMain = await this.client.doTransferFromMain(toAccountID, transferAmount, transferCurrency)
+                if ("main" == params.fromAccount) {
+                    var resultFromMain = await this.client.doTransferFromMain(toAccountID, params.transferAmount, params.transferCurrency)
                     this.logInfo(resultFromMain, 3)
                     // revert to selected Account
                     newProfile = this.profiles[currentProfile]
@@ -587,8 +597,8 @@ class BitstampGUIServer {
 
                 }
                 // to main, ie. not required to move to toAccount
-                if ("main" == toAccount) {
-                    var resultToMain = await this.client.doTransferToMain(fromAccountID, transferAmount, transferCurrency)
+                if ("main" == params.toAccount) {
+                    var resultToMain = await this.client.doTransferToMain(fromAccountID, params.transferAmount, params.transferCurrency)
                     this.logInfo(resultToMain, 3)
                     // revert to selected Account
                     newProfile = this.profiles[currentProfile]
@@ -684,7 +694,7 @@ class BitstampGUIServer {
         var transactionFound = false
         var transactions = await this.client.getUserTransactions("limit=60")
 
-        this.logInfo({ "last 10 transactions": transactions }, 3)
+        //this.logInfo({ "last 10 transactions": transactions }, 3)
 
         var minPrice = 999999999999
         for (var transaction in transactions) {
@@ -764,39 +774,41 @@ class BitstampGUIServer {
         var dt
         var txs = []
         for (var k in result) {
+            if ('2' == result[k].type) {
+                Object.keys(result[k]).forEach(function (key) {
+                    var pos = key.indexOf("_")
+                    if (0 < pos && "order_id" != key) {
+                        // found pair
+                        if (key in pairs) {
+                            // confirmed pair
+                            cryptoCode = key.substring(0, pos)
+                            currencyCode = key.substring(pos + 1, key.length)
+                            // console.log(currencyCode, cryptoCode)
+                            pair = key
+                        }
 
-            Object.keys(result[k]).forEach(function (key) {
-                var pos = key.indexOf("_")
-                if (0 < pos && "order_id" != key) {
-                    // found pair
-                    if (key in pairs) {
-                        // confirmed pair
-                        cryptoCode = key.substring(0, pos)
-                        currencyCode = key.substring(pos + 1, key.length)
-                        // console.log(currencyCode, cryptoCode)
-                        pair = key
                     }
+                })
+                price = result[k][pair]
+                cryptoAmount = parseFloat(result[k][cryptoCode])
+                currencyAmount = parseFloat(result[k][currencyCode])
+                order_id = result[k]['order_id']
+                id = result[k]['id']
+                type = result[k]['type']
+                fee = result[k]['fee']
+                dtString = result[k]['datetime'].substring(0, 19)
 
+                var dtTemp = new Date(dtString)
+
+                dt = new Date(dtTemp - (2 * 60000 * offset)) // 2* cause the Date() caused recalculation of offset, now we have to "go back twice the offset
+
+                var tx = { order_id: order_id, id: id, datetime: dt, fee: fee, price: price, a1: cryptoAmount, p1: cryptoCode, a2: currencyAmount, p2: currencyCode, }
+                // console.log(tx)
+                if (dt >= dateFrom && type == "2") {
+                    txs.push(tx)
                 }
-            })
-            price = result[k][pair]
-            cryptoAmount = parseFloat(result[k][cryptoCode])
-            currencyAmount = parseFloat(result[k][currencyCode])
-            order_id = result[k]['order_id']
-            id = result[k]['id']
-            type = result[k]['type']
-            fee = result[k]['fee']
-            dtString = result[k]['datetime'].substring(0, 19)
-
-            var dtTemp = new Date(dtString)
-
-            dt = new Date(dtTemp - (2 * 60000 * offset)) // 2* cause the Date() caused recalculation of offset, now we have to "go back twice the offset
-
-            var tx = { order_id: order_id, id: id, datetime: dt, fee: fee, price: price, a1: cryptoAmount, p1: cryptoCode, a2: currencyAmount, p2: currencyCode, }
-            // console.log(tx)
-            if (dt >= dateFrom && type == "2") {
-                txs.push(tx)
             }
+
         }
 
         return txs

@@ -194,11 +194,11 @@ class BitstampBot {
     }
 
     async readThresholds() {
-        const data = fs.readFileSync(this.configuration.path_bot_thresholds, 'utf8')
+        const data = fs.readFileSync(this.configuration.path_bot_thresholds)
         if (0 <= data.indexOf("high") && 0 <= data.indexOf("low")) {
-            var params = data.split("\r")
-            this.high = parseFloat(params[0].split("=")[1])
-            this.low = parseFloat(params[1].split("=")[1])
+            var params = JSON.parse(data)
+            this.high = params.high
+            this.low = params.low
             this.logInfo({ "current bot threshold - high": this.high }, 2)
             this.logInfo({ "current bot threshold - low": this.low }, 2)
             return true

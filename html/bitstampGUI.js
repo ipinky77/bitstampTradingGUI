@@ -4,6 +4,8 @@ var currentCurrency = ""
 var currentCrypto = ""
 var currentProfile = ""
 
+var decimals = 4
+var masks = {}
 var profiles
 var accountOverview
 var availableCryptos = []
@@ -18,6 +20,7 @@ function init() {
     getProfiles()
     getCurrency()
     getCrypto()
+    getMasks()
 
     reduceLists(currentCurrency, currentCrypto)
     console.log("currentCurrency: " + currentCurrency)
@@ -40,15 +43,17 @@ function init() {
 function changeProfile(profile) {
 
     console.log("new profile: " + profile)
-
-    var scriptUrl = "/changeProfile?profile=" + profile;
+    var params = { "profile": profile }
+    var scriptUrl = "/changeProfile";
     $.ajax({
         url: scriptUrl,
-        type: 'get',
-        dataType: 'html',
+        type: 'post',
+        dataType: 'json',
+        contentType: 'application/json',
         async: false,
+        data: JSON.stringify(params),
         success: function (data) {
-            result = JSON.parse(data)
+            result = data
         }, timeout: 30000
     });
     currentProfile = profile
@@ -94,6 +99,240 @@ function getProfiles() {
 
 }
 
+
+function getMasks() {
+    var result
+    var scriptUrl = "/readMasks";
+    $.ajax({
+        url: scriptUrl,
+        type: 'get',
+        dataType: 'json',
+        async: false,
+        success: function (data) {
+            result = data
+        }, timeout: 30000
+    });
+
+    if ("result" in result && result.result == "failure") {
+        console.log("maybe masks file doesn't exit yet")
+    } else {
+        masks = result
+        console.log("masks", result)
+    }
+}
+
+function writeMasks() {
+    var currency = $("#baseCrypto").val()
+    console.log(masks)
+    masks[currency] = $("#mask").val()
+
+
+    var scriptUrl = "/writeMasks";
+    $.ajax({
+        url: scriptUrl,
+        type: 'post',
+        dataType: 'json',
+        contentType: 'application/json',
+        async: false,
+        data: JSON.stringify(masks),
+        success: function (data) {
+            result = data
+        }, timeout: 30000
+    });
+
+    if ("result" in result && result.result == "failure") {
+        console.log("maybe masks file doesn't exit yet")
+    }
+}
+
+
+function getMultiplier() {
+    var mask = $("#mask").val()
+    var decimalPoint = mask.indexOf(".")
+    var p1 = mask.indexOf("1")
+    var p2 = mask.indexOf("1", p1 + 1)
+    var p3 = mask.indexOf("1", p2 + 1)
+    var p4 = mask.indexOf("1", p3 + 1)
+
+    // 10 to the power of decimal point position - position of 1 - if decimal point position is > position 1 1, otherwise 0
+    var m1 = 10 ** ((decimalPoint - (decimalPoint > p1 ? 1 : 0)) - p1)
+    var m2 = 10 ** ((decimalPoint - (decimalPoint > p2 ? 1 : 0)) - p2)
+    var m3 = 10 ** ((decimalPoint - (decimalPoint > p3 ? 1 : 0)) - p3)
+    var m4 = 10 ** ((decimalPoint - (decimalPoint > p4 ? 1 : 0)) - p4)
+
+    var multiplier = { '1000': m1, '0100': m2, '0010': m3, '0001': m4 }
+    return multiplier
+}
+
+function testMask() {
+    $("#changeBy").val(parseFloat($("#mask").val()).toFixed(decimals))
+    $("#originalPrice").val((0).toFixed(decimals))
+    var originalPrice = parseFloat($("#originalPrice").val())
+    var changeBy = parseFloat($("#changeBy").val())
+    $("#priceUp").text((originalPrice + changeBy).toFixed(decimals))
+    $("#priceDown").text((originalPrice - changeBy).toFixed(decimals))
+}
+// if the mask is equal to the price
+function getMask() {
+    copyCurrentPrice()
+    var price = parseFloat($("#originalPrice").val())
+    var string = (price).toFixed(8).toString()
+    var mask = ""
+    var i = 0
+    var decimalAdded = false
+    var cstring = string.split("")
+
+    for (var p = 0; p < cstring.length; p++) {
+        var c = cstring[p]
+        if ("." == c) {
+            decimalAdded = true
+            mask += "."
+        } else {
+            if (!decimalAdded) {
+                if (i < 4) {
+                    if (i == 0) {
+                        if ("0" == c) {
+                            mask += "0"
+                        } else {
+                            mask += "1"
+                            i++
+                        }
+                    } else {
+                        mask += "1"
+                        i++
+
+                    }
+                } else {
+                    mask += "0"
+                }
+            } else {
+                if (i > 0) {
+                    mask += "1"
+                    i++
+                } else {
+                    if ("0" == c) {
+                        mask += "0"
+                    } else {
+                        mask += "1"
+                        i++
+                    }
+                }
+            }
+        }
+        // do we have 4 ones, then exit
+        if (4 == i && decimalAdded) {
+            break
+        }
+    }
+    if (0 > mask.indexOf(".")) {
+        mask += ".0"
+    }
+
+    $("#mask").val(mask)
+
+    formatMask()
+    $("#changeBy").val(0)
+
+    var originalPrice = parseFloat($("#originalPrice").val())
+    var changeBy = parseFloat($("#changeBy").val())
+    $("#priceUp").text((originalPrice + changeBy).toFixed(decimals))
+    $("#priceDown").text((originalPrice - changeBy).toFixed(decimals))
+
+
+}
+
+function copyCurrentPrice() {
+    $("#originalPrice").val(parseFloat($("#currentPrice").text()).toFixed(decimals))
+
+}
+
+function changePriceBy(where, how) {
+    var multiplier = getMultiplier()
+    var changePriceBy = parseFloat($("#changeBy").val())
+
+    if ('up' == how) {
+        changePriceBy += multiplier[where]
+    } else {
+        changePriceBy -= multiplier[where]
+    }
+    $("#changeBy").val(changePriceBy.toFixed(decimals))
+
+    var originalPrice = parseFloat($("#originalPrice").val())
+    var changeBy = parseFloat($("#changeBy").val())
+    $("#priceUp").text((originalPrice + changeBy).toFixed(decimals))
+    $("#priceDown").text((originalPrice - changeBy).toFixed(decimals))
+
+}
+
+function formatMask() {
+    // get decimals
+    var mask = $("#mask").val()
+
+    if (0 > mask.indexOf(".")) {
+        mask += ".0"
+    }
+    if ("." == mask.substr(mask.length - 1, 1)) {
+        mask += "0"
+    }
+    $("#mask").val(mask)
+
+    var l = mask.length
+    var posDec = mask.indexOf(".") + 1
+    decimals = l - posDec
+    var originalPrice = parseFloat($("#originalPrice").val())
+    $("#originalPrice").val(originalPrice.toFixed(decimals))
+    moveMarker()
+}
+
+function moveMarker() {
+    var mask = $("#mask").val()
+
+    // pad mask
+    var paddedMask = mask
+    while (paddedMask.length < 12) {
+        paddedMask = "0" + paddedMask
+    }
+
+    var g = false
+    var b = false
+    var y = false
+    var r = false
+    // remove all classes and emptyMarker class
+    for (var i = 1; i <= 12; i++) {
+        var tag = "#" + i
+        $(tag).removeClass("emptyMarker")
+        $(tag).removeClass("blueMarker")
+        $(tag).removeClass("yellowMarker")
+        $(tag).removeClass("greenMarker")
+        $(tag).removeClass("redMarker")
+    }
+
+    for (var i = 0; i < paddedMask.length; i++) {
+        var c = paddedMask.substr(i, 1)
+        var tag = "#" + (i + 1)
+        if ("1" == c) {
+            if (!g) {
+                $(tag).addClass("greenMarker")
+                g = true
+            } else if (!r) {
+                $(tag).addClass("redMarker")
+                r = true
+            } else if (!y) {
+                $(tag).addClass("yellowMarker")
+                y = true
+            } else if (!b) {
+                $(tag).addClass("blueMarker")
+                b = true
+            }
+
+        } else {
+            $(tag).addClass("emptyMarker")
+        }
+    }
+
+}
+
+
 function getCurrency() {
     var result
     var scriptUrl = "/getCurrency";
@@ -111,18 +350,23 @@ function getCurrency() {
     console.log("current currency: " + result.currency)
 }
 
+
 function setCurrency(currency) {
     var result
     console.log("new currency: " + currency)
 
-    var scriptUrl = "/setCurrency?currency=" + currency;
+    var params = { "currency": currency }
+
+    var scriptUrl = "/setCurrency";
     $.ajax({
         url: scriptUrl,
-        type: 'get',
-        dataType: 'html',
+        type: 'post',
+        dataType: 'json',
+        contentType: 'application/json',
         async: false,
+        data: JSON.stringify(params),
         success: function (data) {
-            result = JSON.parse(data)
+            result = data
         }, timeout: 30000
     });
 
@@ -159,14 +403,18 @@ function setCrypto(cryptocurrency) {
     var result
     console.log("new crypto: " + cryptocurrency)
 
-    var scriptUrl = "/setCrypto?crypto=" + cryptocurrency;
+    var params = { "crypto": cryptocurrency }
+
+    var scriptUrl = "/setCrypto";
     $.ajax({
         url: scriptUrl,
-        type: 'get',
-        dataType: 'html',
+        type: 'post',
+        dataType: 'json',
+        contentType: 'application/json',
         async: false,
+        data: JSON.stringify(params),
         success: function (data) {
-            result = JSON.parse(data)
+            result = data
         }, timeout: 30000
     });
 
@@ -180,6 +428,22 @@ function setCrypto(cryptocurrency) {
     updateUpDownPrice()
     readBotThresholds()
     alert('Crypto changed')
+}
+
+function showMaskEditor() {
+    html = $("#maskEditor").html()
+    if ("" == html) {
+        $("#maskEditor").load("maskEditor.html", function () {
+            console.log("mask editor loaded")
+        });
+
+    } else {
+        $("#maskEditor").show()
+    }
+}
+
+function hideMaskEditor() {
+    $("#maskEditor").hide()
 }
 
 function getBalance() {
@@ -416,17 +680,21 @@ function cancelOrder(type) {
         newPrice = price + decreaseBy
     }
 
+    var params = { id: orderID, "newPrice": newPrice, "fee": fee }
+
     var result
-    var scriptUrl = "/cancelOrder?id=" + orderID + "&newPrice=" + newPrice + "&fee=" + fee;
+    var scriptUrl = "/cancelOrder"
     console.log(scriptUrl)
     $.ajax({
         url: scriptUrl,
-        type: 'get',
-        dataType: 'html',
+        type: 'post',
+        dataType: 'json',
+        contentType: 'application/json',
         async: false,
+        data: JSON.stringify(params),
         success: function (data) {
             console.log(data)
-            result = JSON.parse(data)
+            result = data
         }, timeout: 30000
     });
     $("#buyPrice").text(result.price)
@@ -458,12 +726,19 @@ function writeBotThresholds() {
     var result
     const high = $("#newHigh").val()
     const low = $("#newLow").val()
-    var scriptUrl = "/writeBotThresholds?high=" + high + "&low=" + low;
+
+    var thresholds = {}
+    thresholds['high'] = parseFloat(high)
+    thresholds['low'] = parseFloat(low)
+
+    var scriptUrl = "/writeBotThresholds";
     $.ajax({
         url: scriptUrl,
-        type: 'get',
-        dataType: 'html',
-        async: false,
+        type: 'POST',
+        dataType: 'json',
+        contentType: 'application/json',
+        async: true,
+        data: JSON.stringify(thresholds),
         success: function (data) {
             result = JSON.parse(data)
         }, timeout: 30000
@@ -674,26 +949,35 @@ function populateTransferAccounts() {
 function transferFunds() {
     var fromAccount = $("#fromAccount").val();
     var toAccount = $("#toAccount").val();
-    var transferCurrency = $("#transferCurrency").val()
-    var transferAmount = $("#transferAmount").val()
+    var transferCurrency = $("#transferCurrency").val().toUpperCase()
+    var transferAmount = parseFloat($("#transferAmount").val())
 
     if (isNaN(transferAmount)) {
         alert("Please enter a valid number in the amount field")
         return
     }
 
+    var params = {
+        "fromAccount": fromAccount, "toAccount": toAccount, "transferCurrency": transferCurrency, "transferAmount": transferAmount
+    }
+
+
     // if all is fine initiate transfer
     var result
-    var scriptUrl = "/transferFunds?fromAccount=" + fromAccount + "&toAccount=" + toAccount + "&transferCurrency=" + transferCurrency + "&transferAmount=" + transferAmount
+    var scriptUrl = "/transferFunds"
+
+
     console.log(scriptUrl)
     $.ajax({
         url: scriptUrl,
-        type: 'get',
-        dataType: 'html',
+        type: 'post',
+        dataType: 'json',
+        contentType: 'application/json',
         async: false,
+        data: JSON.stringify(params),
         success: function (data) {
             console.log(data)
-            result = JSON.parse(data)
+            result = data
         }, timeout: 30000
     });
     console.log(result)
@@ -766,23 +1050,33 @@ function getTransactions() {
         }
         console.log("date from", dateFrom)
 
-        var scriptUrl = "/getTransactions?dateFrom=" + dateFromString;
+        var params = { "dateFrom": dateFromString }
+        var isSuccess = false
+        var scriptUrl = "/getTransactions";
         $.ajax({
             url: scriptUrl,
-            type: 'get',
-            dataType: 'html',
+            type: 'post',
+            dataType: 'json',
+            contentType: 'application/json',
             async: false,
+            data: JSON.stringify(params),
             success: function (data) {
-                result = JSON.parse(data)
-            }, timeout: 30000
+                result = data
+                isSuccess = true
+            },
+            timeout: 30000
         });
         console.log(result)
+        if (isSuccess) {
+            var table = createPairsTable(result);
+            $("#transactionsContainer").html(table);
+            var date = $("#dateFrom").val()
+            $("#download").attr('href', "/download?dateFrom=" + date)
+            $("#download").show()
 
-        var table = createPairsTable(result);
-        $("#transactionsContainer").html(table);
-        var date = $("#dateFrom").val()
-        $("#download").attr('href', "/download?dateFrom=" + date)
-        $("#download").show()
+        } else {
+            alert('something went wrong')
+        }
     } catch (error) {
         alert(error)
     }
@@ -909,3 +1203,38 @@ function createOverviewTable(byAccount) {
 
 };
 
+function toolTip(id, key) {
+    // find docHeight prior loading the tooltip
+    // var docHeight = $(document).height();
+    // for some strange reason the docHeight is always to high so we set default to 800
+    var docHeight = 800
+    // var docWidth = $(document).width();
+    // for some strange reason docWidth is minimum 800px, so we set it default to 600
+    var docWidth = 600
+    $("#" + id + " .tooltiptext").load('toolTips/' + key, function () {
+        var tip = $("#" + id)
+        var span = $(tip).find('.tooltiptext')
+        var height = span.height();
+        var width = span.width();
+
+        // if all is fine then return
+        if (((mouseY + height) < docHeight) && ((mouseX + width) < docWidth)) {
+            return
+        }
+
+
+        var offsetV = docHeight - (mouseY + height)
+        if (offsetV < 0) {
+            // need to move it higher by minimum offset
+            var pos = (offsetV - 20) + "px"
+            $(span).css("top", pos)
+        }
+
+        var offsetH = docWidth - (mouseX + width)
+        if (offsetH < 0) {
+            // need to move it higher by minimum offset
+            var pos = (offsetH - 20) + "px"
+            $(span).css("left", pos)
+        }
+    })
+}

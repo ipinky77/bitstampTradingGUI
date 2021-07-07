@@ -1,10 +1,21 @@
 /*
     version 1.2.0
 */
+html{
+    max-width: 600px;
+    margin: 0;
+    padding: 0;
+}
 
 body {
     font: 14px Arial, sans-serif;
+    max-width: 600px
 }
+
+#content{
+    width: 600px
+}
+
 
 a{
     text-decoration: none;
@@ -190,3 +201,104 @@ width: 6em;
 #transfer{
     padding: 20px
 }
+
+#maskEditor #originalPrice{
+    font-family: monospace;
+}
+#markerContainer{
+    z-index: -1;
+    position: relative;
+    top: -24px;
+    right: -16px;
+    padding: 0px;
+    margin: 0px;
+}
+
+.greenMarker{
+    font-family: monospace;
+    background-color: green;
+    opacity: 0.5;
+    width: 8px;
+}
+
+.redMarker{
+    font-family: monospace;
+    background-color: red;
+    opacity: 0.5;
+    width: 8px;
+}
+
+.yellowMarker{
+    font-family: monospace;
+    background-color: yellow;
+    opacity: 0.5;
+    width: 8px;
+}
+
+.blueMarker{
+    font-family: monospace;
+    background-color: blue;
+    opacity: 0.5;
+    width: 8px;
+}
+
+.emptyMarker{
+    font-family: monospace;
+    background-color: white;
+    opacity: 0.5;
+    width: 8px;
+}
+
+/* tool tips */
+    /* Tooltip container */
+    .tooltip {
+        position: relative;
+        display: inline-block;
+        /* If you want dots under the hoverable text */
+    }
+
+    /* Tooltip text */
+    .tooltip .tooltiptext {
+        text-align: left;
+        color: black;
+        visibility: hidden;
+        background-color: rgb(217, 188, 241);
+        padding: 10px 10px;
+        border-radius: 6px;
+        min-width: 200px;
+        /* Position the tooltip text - see examples below! */
+        position: absolute;
+        z-index: 1;
+    }
+
+    /* Show the tooltip text when you mouse over the tooltip container */
+    .tooltip:hover .tooltiptext {
+        visibility: visible;
+    }
+
+    #block {
+        display: block;
+        height: 00px
+    }
+
+    .tooltip .Summary{
+        display: block;
+        font-weight: bold;
+        /* margin-bottom: 20px; */
+    }
+
+    .tooltip .Example{
+        display: block;
+        font-weight: normal;
+        font-style: italic;
+        /* margin-bottom: 20px; */
+        padding-bottom: 20px;
+    }
+
+    .tooltip .Attention{
+        display: block;
+        font-weight: normal;
+        font-style:normal;
+        color: red;
+        /* margin-bottom: 20px; */
+    }
