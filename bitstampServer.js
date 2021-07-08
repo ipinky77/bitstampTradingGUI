@@ -3,8 +3,7 @@ console.log("bitstampServer.js", version)
 const BitstampClient = require("./bitstampClient.js")
 
 //server.js
-// const bodyParser = require('body-parser');
-const url = require('url')
+var cookieParser = require('cookie-parser')
 var express = require('express');
 var app = express();
 var session = require('express-session')
@@ -69,6 +68,7 @@ class BitstampGUIServer {
 
         app.use(express.json())
         app.use(express.urlencoded({ extended: true }))
+        app.use(cookieParser())
 
         // app.use(express.static('./html')); // set default directory
 
@@ -86,6 +86,7 @@ class BitstampGUIServer {
 
 
         app.get('/', (request, response) => {
+            console.log('Cookies: ', request.cookies)
             this.logInfo("***** reloading page", 1)
             this.client.setProfile(defaultProfile)
             this.currentCurrency = defaultProfile.defaultCurrency.toLowerCase()
@@ -102,6 +103,10 @@ class BitstampGUIServer {
         app.post('/cancelOrder', async (request, response) => {
 
             try {
+                if (this.configuration.simulate) {
+                    var order = await this.client.getOpenOrders()
+                    response.json(order[0])
+                }
                 var params = request.body
                 var id = params.id
                 var fee = params.fee
@@ -442,7 +447,7 @@ class BitstampGUIServer {
                 let result = await this.client.getOpenOrders()
                 if (result[0] === undefined) {
                     this.logInfo("no open orders to return", 2)
-                    result = { "id": "", "buyPrice": "", type: "" }
+                    result = { "id": "", "price": "no price", type: "", "amount": "no amount" }
                     response.json(result)
                 } else {
                     this.logInfo({ "open order": result[0] }, 2)
@@ -493,6 +498,10 @@ class BitstampGUIServer {
                 var balances = {
                     crypto_available: result[this.currentCrypto + '_available'], crypto_reserved: result[this.currentCrypto + '_reserved'],
                     currency_available: result[this.currentCurrency + '_available'], currency_reserved: result[this.currentCurrency + '_reserved']
+                }
+                if (this.configuration.simulate) {
+                    balances["crypto_available"] = 1000
+                    balances["currency_available"] = 1000
                 }
                 this.logInfo({ "returned to GUI": balances }, 2)
                 response.json(balances)
@@ -724,7 +733,7 @@ class BitstampGUIServer {
 
     async getLastSellPrice() {
         var transactionFound = false
-        var transactions = await this.client.getUserTransactions("limit=40")
+        var transactions = await this.client.getUserTransactions("limit=250")
         var lowestPrice = -1
         var order_id = ""
         for (var transaction in transactions) {

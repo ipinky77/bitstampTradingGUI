@@ -4,6 +4,7 @@ var currentCurrency = ""
 var currentCrypto = ""
 var currentProfile = ""
 
+var myCookie = {}
 var decimals = 4
 var masks = {}
 var profiles
@@ -30,9 +31,13 @@ function init() {
     $("#baseCrypto").val(currentCrypto);
     $("#baseCurrency").val(currentCurrency);
 
+
+    getCurrentPrice()
+    getCurrentMask()
+    getCurrentPrice()
     getBalance()
     getLastSellPrice()
-    getCurrentPrice()
+
     getMinMaxPrice()
 
     getOpenOrder()
@@ -146,8 +151,15 @@ function writeMasks() {
 }
 
 
-function getMultiplier() {
-    var mask = $("#mask").val()
+function getMultiplier(defaultMask = undefined) {
+
+    var mask
+    if (defaultMask === undefined) {
+        mask = $("#mask").val()
+    } else {
+        mask = defaultMask
+    }
+
     var decimalPoint = mask.indexOf(".")
     var p1 = mask.indexOf("1")
     var p2 = mask.indexOf("1", p1 + 1)
@@ -173,9 +185,17 @@ function testMask() {
     $("#priceDown").text((originalPrice - changeBy).toFixed(decimals))
 }
 // if the mask is equal to the price
-function getMask() {
-    copyCurrentPrice()
-    var price = parseFloat($("#originalPrice").val())
+function getMask(defaultPrice = undefined) {
+
+    var price
+    var maskEditorOpen = false
+    if (undefined === defaultPrice) {
+        copyCurrentPrice()
+        price = parseFloat($("#originalPrice").val())
+        maskEditorOpen = true
+    } else {
+        price = defaultPrice
+    }
     var string = (price).toFixed(8).toString()
     var mask = ""
     var i = 0
@@ -228,15 +248,23 @@ function getMask() {
         mask += ".0"
     }
 
-    $("#mask").val(mask)
+    if (maskEditorOpen) {
+        $("#mask").val(mask)
 
-    formatMask()
-    $("#changeBy").val(0)
+        formatMask()
+        $("#changeBy").val(0)
 
-    var originalPrice = parseFloat($("#originalPrice").val())
-    var changeBy = parseFloat($("#changeBy").val())
-    $("#priceUp").text((originalPrice + changeBy).toFixed(decimals))
-    $("#priceDown").text((originalPrice - changeBy).toFixed(decimals))
+        var originalPrice = parseFloat($("#originalPrice").val())
+        var changeBy = parseFloat($("#changeBy").val())
+        $("#priceUp").text((originalPrice + changeBy).toFixed(decimals))
+        $("#priceDown").text((originalPrice - changeBy).toFixed(decimals))
+
+    } else {
+        $("#mask").val(mask)
+
+        masks[currentCrypto] = mask
+        formatMask(mask)
+    }
 
 
 }
@@ -264,9 +292,16 @@ function changePriceBy(where, how) {
 
 }
 
-function formatMask() {
+function formatMask(defaultMask = undefined) {
     // get decimals
-    var mask = $("#mask").val()
+    var mask
+    var maskEditorOpen = false
+    if (undefined === defaultMask) {
+        mask = $("#mask").val()
+        maskEditorOpen = true
+    } else {
+        mask = defaultMask
+    }
 
     if (0 > mask.indexOf(".")) {
         mask += ".0"
@@ -274,14 +309,23 @@ function formatMask() {
     if ("." == mask.substr(mask.length - 1, 1)) {
         mask += "0"
     }
-    $("#mask").val(mask)
+    if (maskEditorOpen) {
+        $("#mask").val(mask)
+    } else {
+        masks[currentCrypto] = mask
+    }
+
 
     var l = mask.length
     var posDec = mask.indexOf(".") + 1
+    // global variable 
     decimals = l - posDec
-    var originalPrice = parseFloat($("#originalPrice").val())
-    $("#originalPrice").val(originalPrice.toFixed(decimals))
-    moveMarker()
+
+    if (maskEditorOpen) {
+        var originalPrice = parseFloat($("#originalPrice").val())
+        $("#originalPrice").val(originalPrice.toFixed(decimals))
+        moveMarker()
+    }
 }
 
 function moveMarker() {
@@ -370,14 +414,18 @@ function setCurrency(currency) {
         }, timeout: 30000
     });
 
+    currentCurrency = currency
+    getCurrentPrice()
+    getCurrentMask()
+    getCurrentPrice()
     getBalance()
     getLastSellPrice()
-    getCurrentPrice()
     getMinMaxPrice()
-
     getOpenOrder()
+
     updateUpDownPrice()
     readBotThresholds()
+    $("#decreasePrice").val(0)
     alert('Currency changed')
 }
 
@@ -419,14 +467,18 @@ function setCrypto(cryptocurrency) {
     });
 
     $(".crypto").text(cryptocurrency)
+    currentCrypto = cryptocurrency
+    getCurrentPrice()
+    getCurrentMask()
+    getCurrentPrice()
     getBalance()
     getLastSellPrice()
-    getCurrentPrice()
     getMinMaxPrice()
-
     getOpenOrder()
+
     updateUpDownPrice()
     readBotThresholds()
+    $("#decreasePrice").val(0)
     alert('Crypto changed')
 }
 
@@ -461,8 +513,8 @@ function getBalance() {
     console.log(result)
     $("#currency_available").text(parseFloat(result.currency_available).toFixed(4))
     $("#currency_reserved").text(parseFloat(result.currency_reserved).toFixed(4))
-    $("#crypto_available").text(parseFloat(result.crypto_available).toFixed(4))
-    $("#crypto_reserved").text(parseFloat(result.crypto_reserved).toFixed(4))
+    $("#crypto_available").text(parseFloat(result.crypto_available).toFixed(8))
+    $("#crypto_reserved").text(parseFloat(result.crypto_reserved).toFixed(8))
     getFee()
 }
 
@@ -497,9 +549,11 @@ function getLastSellPrice() {
     });
     console.log(result)
     if (result.sellPrice != null) {
-        $("#sellPrice").text(result.sellPrice.toFixed(4))
+        $("#sellPrice").text(result.sellPrice.toFixed(decimals))
 
         getMinMaxPrice()
+    } else {
+        $("#sellPrice").text(NaN)
     }
 }
 
@@ -511,9 +565,9 @@ function getMinMaxPrice() {
     const zeroLossPrice = (sellPrice * (1 - (2 * fee) / 100))
     const minimumPrice = (sellPrice * (1 + min / 100) * (1 - (2 * fee) / 100))
     const maximumPrice = (sellPrice * (1 + max / 100) * (1 - (2 * fee) / 100))
-    $("#zeroLossPrice").text(zeroLossPrice.toFixed(4))
-    $("#minimumPrice").text(minimumPrice.toFixed(4))
-    $("#maximumPrice").text(maximumPrice.toFixed(4))
+    $("#zeroLossPrice").text(zeroLossPrice.toFixed(decimals))
+    $("#minimumPrice").text(minimumPrice.toFixed(decimals))
+    $("#maximumPrice").text(maximumPrice.toFixed(decimals))
 
     const currency_available = parseFloat($("#currency_available").text())
     const currency_reserved = parseFloat($("#currency_reserved").text())
@@ -527,9 +581,9 @@ function getMinMaxPrice() {
         amount = currency_reserved
     }
     amount = amount * (1 - fee / 100)
-    $("#zeroLossCrypto").text((amount / zeroLossPrice).toFixed(4))
-    $("#minimumCrypto").text((amount / minimumPrice).toFixed(4))
-    $("#maximumCrypto").text((amount / maximumPrice).toFixed(4))
+    $("#zeroLossCrypto").text((amount / zeroLossPrice).toFixed(8))
+    $("#minimumCrypto").text((amount / minimumPrice).toFixed(8))
+    $("#maximumCrypto").text((amount / maximumPrice).toFixed(8))
 
 }
 
@@ -545,8 +599,8 @@ function getCurrentPrice() {
             result = JSON.parse(data)
         }, timeout: 30000
     });
-    $("#currentPrice").text(parseFloat(result.currentPrice).toFixed(4))
-    $("#price_required").val(parseFloat(result.currentPrice).toFixed(4))
+    $("#currentPrice").text(parseFloat(result.currentPrice).toFixed(decimals))
+    $("#price_required").val(parseFloat(result.currentPrice).toFixed(decimals))
     console.log(result)
     getTargetCrypto(false)
 }
@@ -569,7 +623,7 @@ function getTargetPrice(manuallyInvoked = false) {
     }
     amount = amount * (1 - fee / 100)
     const crypto_target = parseFloat($("#crypto_target").val())
-    $("#price_required").val((amount / crypto_target).toFixed(4))
+    $("#price_required").val((amount / crypto_target).toFixed(decimals))
 }
 
 function getTargetCrypto(manuallyInvoked = false) {
@@ -588,7 +642,7 @@ function getTargetCrypto(manuallyInvoked = false) {
     }
     amount = amount * (1 - fee / 100)
     const price_required = parseFloat($("#price_required").val())
-    $("#crypto_target").val((amount / price_required).toFixed(4))
+    $("#crypto_target").val((amount / price_required).toFixed(8))
 }
 
 function getOpenOrder() {
@@ -603,68 +657,81 @@ function getOpenOrder() {
             result = JSON.parse(data)
         }, timeout: 30000
     });
-    $("#buyPrice").text(result.price)
-    $("#buyCrypto").text(parseFloat(result.amount).toFixed(0))
+    $("#buyPrice").text(parseFloat(result.price).toFixed(decimals))
+    $("#buyCrypto").text(parseFloat(result.amount).toFixed(8))
     $("#orderID").text(result.id)
-    $("#crypto_expected").text((parseFloat(result.amount)).toFixed(4))
+    $("#crypto_expected").text((parseFloat(result.amount)).toFixed(8))
     if ("1" == result.type) {
         $("#orderType").text("SELL")
+        $("#buyCrypto").text(parseFloat(result.amount * result.price).toFixed(decimals))
         $("#orderType, #buyPrice, #orderID").addClass("typeSell");
         $("#orderType, #buyPrice, #orderID").removeClass("typeBuy");
+        $(".crypto").text(currentCurrency)
     } else if ("0" == result.type) {
+        $(".crypto").text(currentCrypto)
         $("#orderType").text("BUY")
         $("#orderType, #buyPrice, #orderID").addClass("typeBuy");
         $("#orderType, #buyPrice, #orderID").removeClass("typeSell");
 
     } else {
         $("#orderType").text("")
+        $("#orderType, #buyPrice, #orderID").removeClass("typeBuy");
+        $("#orderType, #buyPrice, #orderID").removeClass("typeSell");
+
     }
     console.log(result)
     updateUpDownPrice()
 }
 
 function changeOrderPriceBy(where, how) {
+
+    getCurrentMask()
+    // at this point the mask needs be available in the masks object
+    var multiplier = getMultiplier(masks[currentCrypto])
     var changePriceBy = parseFloat($("#decreasePrice").val())
 
     if ('up' == how) {
-        if ('1000' == where) {
-            changePriceBy += 0.1
-        } else if ('0100' == where) {
-            changePriceBy += 0.01
-        } else if ('0010' == where) {
-            changePriceBy += 0.001
-        } else if ('0001' == where) {
-            changePriceBy += 0.0001
-        }
-
+        changePriceBy += multiplier[where]
     } else {
-        if ('1000' == where) {
-            changePriceBy -= 0.1
-        } else if ('0100' == where) {
-            changePriceBy -= 0.01
-        } else if ('0010' == where) {
-            changePriceBy -= 0.001
-        } else if ('0001' == where) {
-            changePriceBy -= 0.0001
-        }
+        changePriceBy -= multiplier[where]
     }
-    $("#decreasePrice").val(changePriceBy.toFixed(4))
+    $("#decreasePrice").val(changePriceBy.toFixed(decimals))
+
     updateUpDownPrice()
 }
 
 function updateUpDownPrice() {
-    const changePriceBy = parseFloat($("#decreasePrice").val())
-    const buyPrice = parseFloat($("#buyPrice").text())
-    const upPrice = buyPrice + changePriceBy
-    const downPrice = buyPrice - changePriceBy
-    $("#upPrice").text(upPrice.toFixed(4))
-    $("#downPrice").text(downPrice.toFixed(4))
-    const buyCrypto = parseFloat($("#buyCrypto").text())
-    const usd = buyCrypto * buyPrice
-    const upXRP = usd / upPrice
-    const downXRP = usd / downPrice
-    $("#upXRP").text(upXRP.toFixed(0))
-    $("#downXRP").text(downXRP.toFixed(0))
+    var type = $("#orderType").text()
+
+    if ("SELL" == type) {
+        const changePriceBy = parseFloat($("#decreasePrice").val())
+        const buyPrice = parseFloat($("#buyPrice").text())
+        const upPrice = buyPrice + changePriceBy
+        const downPrice = buyPrice - changePriceBy
+        $("#upPrice").text(upPrice.toFixed(decimals))
+        $("#downPrice").text(downPrice.toFixed(decimals))
+        const buyCurrency = parseFloat($("#buyCrypto").text())
+        const buyCrypto = buyCurrency / buyPrice
+        const upXRP = buyCrypto * upPrice
+        const downXRP = buyCrypto * downPrice
+        $("#upXRP").text(upXRP.toFixed(8))
+        $("#downXRP").text(downXRP.toFixed(8))
+
+    } else {
+        const changePriceBy = parseFloat($("#decreasePrice").val())
+        const buyPrice = parseFloat($("#buyPrice").text())
+        const upPrice = buyPrice + changePriceBy
+        const downPrice = buyPrice - changePriceBy
+        $("#upPrice").text(upPrice.toFixed(decimals))
+        $("#downPrice").text(downPrice.toFixed(decimals))
+        const buyCrypto = parseFloat($("#buyCrypto").text())
+        const usd = buyCrypto * buyPrice
+        const upXRP = usd / upPrice
+        const downXRP = usd / downPrice
+        $("#upXRP").text(upXRP.toFixed(8))
+        $("#downXRP").text(downXRP.toFixed(8))
+
+    }
 
 }
 
@@ -699,7 +766,20 @@ function cancelOrder(type) {
     });
     $("#buyPrice").text(result.price)
     $("#orderID").text(result.id)
-    $("#buyCrypto").text(parseFloat(result.amount).toFixed(4))
+    $("#buyCrypto").text(parseFloat(result.amount).toFixed(8))
+    if ("1" == result.type) {
+        $(".crypto").text(currentCurrency)
+        $("#orderType").text("SELL")
+        $("#orderType, #buyPrice, #orderID").addClass("typeSell");
+        $("#orderType, #buyPrice, #orderID").removeClass("typeBuy");
+
+    } else {
+        $(".crypto").text(currentCrypto)
+        $("#orderType").text("BUY")
+        $("#orderType, #buyPrice, #orderID").addClass("typeBuy");
+        $("#orderType, #buyPrice, #orderID").removeClass("typeSell");
+    }
+
     console.log(result)
     updateUpDownPrice()
 
@@ -1108,7 +1188,7 @@ function createPairsTable(mydata) {
         for (var j in mydata[i]) {
             if (j != "order_id" && j != "id") {
                 if ("price" == j || "a1" == j || "a2" == j) {
-                    tblRow += "<td>" + parseFloat(mydata[i][j]).toFixed(4) + "</td>"
+                    tblRow += "<td>" + parseFloat(mydata[i][j]).toFixed(8) + "</td>"
                 } else {
                     tblRow += "<td>" + mydata[i][j].toUpperCase() + "</td>"
                 }
@@ -1152,9 +1232,9 @@ function createOverviewTable(byAccount) {
         table = '<table><tr class="double_bottom_border"><th class="row_label columnAccount">Account</th><th class="columnCurrency row_label"><a href="javascript:createOverviewTable(false)">Currency</a></th><th class="column_label">available</th><th class="column_label">reserved</th></tr>'
         for (var i = 0; i < mydata.length; i++) {
             if (i < (mydata.length - 1) && mydata[i + 1].account != mydata[i].account) {
-                table += '<tr class="bottom_border"><td class="row_label columnAccount">' + mydata[i].account + ' </td><td class="columnCurrency">' + mydata[i].currency.toUpperCase() + '</td><td class="value columnAmount">' + mydata[i].available.toFixed(6) + ' </td><td class="value columnAmount">' + mydata[i].reserved.toFixed(6) + '</td></tr>'
+                table += '<tr class="bottom_border"><td class="row_label columnAccount">' + mydata[i].account + ' </td><td class="columnCurrency">' + mydata[i].currency.toUpperCase() + '</td><td class="value columnAmount">' + mydata[i].available.toFixed(8) + ' </td><td class="value columnAmount">' + mydata[i].reserved.toFixed(8) + '</td></tr>'
             } else {
-                table += '<tr><td class="row_label columnAccount">' + mydata[i].account + ' </td><td class="columnCurrency">' + mydata[i].currency.toUpperCase() + '</td><td class="value columnAmount">' + mydata[i].available.toFixed(6) + ' </td><td class="value columnAmount">' + mydata[i].reserved.toFixed(6) + '</td></tr>'
+                table += '<tr><td class="row_label columnAccount">' + mydata[i].account + ' </td><td class="columnCurrency">' + mydata[i].currency.toUpperCase() + '</td><td class="value columnAmount">' + mydata[i].available.toFixed(8) + ' </td><td class="value columnAmount">' + mydata[i].reserved.toFixed(8) + '</td></tr>'
             }
         }
         // $("#transfer").hide()
@@ -1188,13 +1268,13 @@ function createOverviewTable(byAccount) {
         for (var i = 0; i < mydata.length; i++) {
             if (ct != "" && ct != mydata[i].currency) {
                 // add total
-                table += '<tr class="double_bottom_border top_border"><td class="row_label">' + ct.toUpperCase() + ' </td><td class="row_label">Total</td><td class="value total">' + currencyTotals[mydata[i - 1].currency].available.toFixed(6) + ' </td><td class="value total">' + currencyTotals[mydata[i - 1].currency].reserved.toFixed(6) + '</td></tr>'
+                table += '<tr class="double_bottom_border top_border"><td class="row_label">' + ct.toUpperCase() + ' </td><td class="row_label">Total</td><td class="value total">' + currencyTotals[mydata[i - 1].currency].available.toFixed(8) + ' </td><td class="value total">' + currencyTotals[mydata[i - 1].currency].reserved.toFixed(8) + '</td></tr>'
             }
 
-            table += '<tr><td class="row_label">' + mydata[i].currency.toUpperCase() + ' </td><td class="columnAccount">' + mydata[i].account + '</td><td class="value columnAmount">' + mydata[i].available.toFixed(6) + ' </td><td class="value columnAmount">' + mydata[i].reserved.toFixed(6) + '</td></tr>'
+            table += '<tr><td class="row_label">' + mydata[i].currency.toUpperCase() + ' </td><td class="columnAccount">' + mydata[i].account + '</td><td class="value columnAmount">' + mydata[i].available.toFixed(8) + ' </td><td class="value columnAmount">' + mydata[i].reserved.toFixed(8) + '</td></tr>'
             ct = mydata[i].currency
         }
-        table += '<tr class="double_bottom_border top_border"><td class="row_label">' + ct.toUpperCase() + ' </td><td class="row_label bottom_border">Total</td><td class="value total">' + currencyTotals[ct].available.toFixed(6) + ' </td><td class="value total">' + currencyTotals[ct].reserved.toFixed(6) + '</td></tr>'
+        table += '<tr class="double_bottom_border top_border"><td class="row_label">' + ct.toUpperCase() + ' </td><td class="row_label bottom_border">Total</td><td class="value total">' + currencyTotals[ct].available.toFixed(8) + ' </td><td class="value total">' + currencyTotals[ct].reserved.toFixed(8) + '</td></tr>'
 
         // $("#transfer").show()
     }
@@ -1237,4 +1317,69 @@ function toolTip(id, key) {
             $(span).css("left", pos)
         }
     })
+}
+
+function getCurrentMask() {
+    if (!(currentCrypto in masks)) {
+        // mask for current crypto not found so create it
+        var currentPrice = parseFloat($("#currentPrice").text())
+        getMask(currentPrice)
+    } else {
+        $("#mask").val(masks[currentCrypto])
+        formatMask(masks[currentCrypto])
+    }
+}
+
+function copyMinMaxValues() {
+    $("#newLow").val($("#minimumPrice").text())
+    $("#newHigh").val($("#maximumPrice").text())
+}
+
+function toggleDarkMode() {
+
+    // var darkMode = false
+
+    // var body = $("body")
+    // var assignedClasses = body.attr('class')
+    // if (undefined != assignedClasses) {
+    //     var classList = assignedClasses.split(/\s+/);
+
+    //     for (var i = 0; i < classList.length; i++) {
+    //         if (classList[i] === 'dark-mode') {
+    //             //do something
+    //             darkMode = true
+    //             break
+    //         }
+    //     }
+
+    // }
+    var darkMode = myCookie['dark-mode']
+
+    if (darkMode) {
+        $("body").removeClass("dark-mode")
+        darkMode = false
+    } else {
+        $("body").addClass("dark-mode")
+        darkMode = true
+    }
+    myCookie['dark-mode'] = darkMode
+    document.cookie = "settings=" + JSON.stringify(myCookie)
+
+}
+
+function getCookie() {
+    let name = "settings=";
+    let decodedCookie = decodeURIComponent(document.cookie);
+    let ca = decodedCookie.split(';');
+    var thisCookie
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            thisCookie = c.substring(name.length, c.length);
+        }
+    }
+    myCookie = JSON.parse(thisCookie)
 }

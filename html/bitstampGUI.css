@@ -9,7 +9,12 @@ html{
 
 body {
     font: 14px Arial, sans-serif;
-    max-width: 600px
+    max-width: 600px;
+}
+
+.dark-mode{
+        background-color: rgb(46, 43, 43);
+    color: rgb(252, 247, 247)
 }
 
 #content{
@@ -17,10 +22,34 @@ body {
 }
 
 
+.dark-mode a{
+    text-decoration: none;
+    border:0;
+    margin:0;
+    color: rgb(18, 156, 138)
+}
+
+.dark-mode  a:hover{
+    color: rgb(30, 190, 169)
+}
+
+
 a{
     text-decoration: none;
     border:0;
-    margin:0
+    margin:0;
+    color: rgb(8, 75, 177)
+}
+
+a:hover{
+    color: rgb(45, 116, 223)
+}
+
+
+/* a:link img {border : none;outline:none} */
+
+a{
+    font-weight: bold;
 }
 table{
     border-spacing: 1em;
@@ -101,9 +130,6 @@ tr.top_border td{
     padding: 0;
 }
 
-.img_link:hover{
-    border: 1px solid red;
-}
 
 #labelSell{
     text-align: center;
@@ -142,6 +168,19 @@ width: 6em;
   padding: 5px 5px;
     font-size:1em ;
   text-align: right;
+  border: 1px solid rgb(216, 204, 204);
+}
+
+.dark-mode img,img{
+    border: none;
+    outline: none;
+    padding-left: 3px;
+}
+
+.dark-mode input {
+    color: rgb(252, 247, 247);
+    background: transparent;
+    border: 1px solid rgb(226, 219, 219);
 }
 
 #currencyPairs, #Accounts{

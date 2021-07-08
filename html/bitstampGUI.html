@@ -18,7 +18,11 @@
         var today = new Date()
         strToday = today.toISOString().split('T')[0]
         $("#dateFrom").val(strToday)
+        getCookie()
+        myCookie['dark-mode'] = !myCookie['dark-mode']
+        toggleDarkMode()
         init()
+
 
     });
 
@@ -49,6 +53,7 @@
                         <option value="Transactions">Transactions</option>
                         <option value="Accounts">Accounts/Transfers</option>
                     </select></td>
+                <td class="column column_label"><a href="javascript:toggleDarkMode()">toggle Mode</a></td>
             </tr>
         </table>
 
@@ -342,6 +347,7 @@
                         <input name="newLow" id="newLow" size="8em" value="">
                     </td>
                     <td class="value">
+                        <a href="javascript:copyMinMaxValues()">use values from Min/Max section</a>
                     </td>
                 </tr>
 

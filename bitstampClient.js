@@ -26,6 +26,7 @@ class BitstampClient {
         this.currency = "usd" // default currency
         this.crypto = "xrp" // default crypto
         this.setUrls()
+        this.simulate = configuration.simulate
     }
 
     setUrls() {
@@ -34,7 +35,6 @@ class BitstampClient {
         this.openOrders = `/api/v2/open_orders/${this.crypto}${this.currency}/`
         this.accountBalance = "/api/v2/balance/"
         this.cancelOrder = "/api/v2/cancel_order/" // id=orderId
-        this.openOrders = `/api/v2/open_orders/${this.crypto}${this.currency}/`
         this.instantBuyOrder = `/api/v2/buy/instant/${this.crypto}${this.currency}/` // amount=dollarAmountToBuy
         this.instantSellOrder = `/api/v2/sell/instant/${this.crypto}${this.currency}/` // amount=XRPToSell
         this.marketBuyOrder = `/api/v2/buy/market/${this.crypto}${this.currency}/` // amount=dollarAmountToBuy
@@ -169,7 +169,32 @@ class BitstampClient {
     }
 
     async getOpenOrders() {
-        return await this.doPost(this.openOrders, "offset=1")
+        if (this.simulate) {
+            console.log("we return a simulated order")
+            var ticker = await this.getHourlyTicker()
+            var price = parseFloat(ticker.last)
+            var currency = 1000
+            var type = this.getRandomType()
+            price = this.getRandomPrice(price, type)
+            var id = this.getRandomID()
+            if ("0" == type) {
+                // buy order
+                var amount = currency / price
+                var result = [{ price: price, amount: amount, id: id, type: type }]
+                console.log("current price", price, "order", result)
+                return result
+            } else {
+                // sell order
+                var amount = 1000
+                var result = [{ price: price, amount: amount, id: id, type: type }]
+                console.log("current price", price, "order", result)
+                return result
+            }
+
+        } else {
+            return await this.doPost(this.openOrders, "offset=1")
+        }
+
     }
 
     // accountbalance doesn't need fields, so we default
@@ -204,8 +229,13 @@ class BitstampClient {
 
 
     doCancelOrder(orderId) {
-        var fields = `id=${orderId}`
-        return this.doPost(this.cancelOrder, fields)
+        if (this.simulate) {
+            return { type: this.type }
+        } else {
+            var fields = `id=${orderId}`
+            return this.doPost(this.cancelOrder, fields)
+
+        }
     }
 
     doTransferToMain(subAccount, amount, currency) {
@@ -330,6 +360,29 @@ class BitstampClient {
         }
 
         return lastPrice
+    }
+
+    getRandomType() {
+        var r = parseInt(Math.random() * 10)
+
+        if (0 == r % 2) {
+            return "0" // buy
+        } else {
+            return "1" // sell
+        }
+    }
+
+    getRandomPrice(price, type) {
+        var r = parseInt(Math.random() * 10) % 5
+        if ("0" == type) {
+            return (price * ((100 - r) / 100))
+        } else {
+            return (price * ((100 + r) / 100))
+        }
+    }
+    getRandomID() {
+        return parseInt(Math.random() * 10000000)
+
     }
 
 }
