@@ -1368,6 +1368,7 @@ function toggleDarkMode() {
 }
 
 function getCookie() {
+    return
     let name = "settings=";
     let decodedCookie = decodeURIComponent(document.cookie);
     let ca = decodedCookie.split(';');
