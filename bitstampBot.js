@@ -1,4 +1,4 @@
-const version = "1.4.1"
+const version = "1.4.2"
 console.log("bitstampBot.js", version)
 const BitstampClient = require("./bitstampClient.js")
 const fs = require('fs');
