@@ -39,17 +39,19 @@ class BitstampBot {
         if (!condTrades || (condAmount && condFile)) {
             willRun = true
         }
-        if (condTrades) {
-            if (condFile) {
-                // file does not contain high nor low
-                if (! await this.readThresholds()) {
-                    this.logInfo(`File "${this.configuration.path_bot_thresholds}" does not contain high and/or low value`, 1)
-                    willRun = false
-                }
-            } else {
+
+        if (condFile) {
+            // file does not contain high nor low
+            if (! await this.readThresholds()) {
+                this.logInfo(`File "${this.configuration.path_bot_thresholds}" does not contain high and/or low value`, 1)
+                willRun = false
+            }
+        } else {
+            if (condTrades) {
                 this.logInfo(`Please make sure the file "${this.configuration.path_bot_thresholds}" exists`, 1)
                 willRun = false
             }
+
         }
         this.willRun = willRun
     }
