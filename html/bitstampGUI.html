@@ -14,13 +14,18 @@
 </head>
 <script>
 
+
+
+
     $(document).ready(function () {
         var today = new Date()
         strToday = today.toISOString().split('T')[0]
         $("#dateFrom").val(strToday)
+
         getCookie()
         myCookie['dark-mode'] = !myCookie['dark-mode']
         toggleDarkMode()
+
         init()
 
 

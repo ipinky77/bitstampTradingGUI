@@ -19,6 +19,7 @@ class BitstampBot {
         this.logInfo({ "currency": this.currency }, 2)
         this.logInfo({ "crypto": this.crypto }, 2)
         this.willRun = false
+        this.willClose = false
 
     }
 
@@ -115,34 +116,35 @@ class BitstampBot {
                         var minute = new Date().getMinutes()
                         var price = response.data.price
 
-                        if (self.executeTrades) {
-                            if (price >= self.high) {
-                                var resultCancel = await self.client.doCancelOrder(self.orderId)
-                                self.logInfo(resultCancel, 3)
-                                self.logInfo("we have to buy high, cancelling existing order and buying instantly", 1)
-                                var result = await self.client.getAccountBalance(false)
-                                self.logInfo(result, 2)
-                                self.amount = parseFloat(result[self.currency + "_available"]).toFixed(4)
-                                self.logInfo(`amount we can spend ${self.amount}`, 3)
+                        if (!self.willClose) {
+                            if (self.executeTrades) {
+                                if (price >= self.high) {
+                                    var resultCancel = await self.client.doCancelOrder(self.orderId)
+                                    self.logInfo(resultCancel, 1)
+                                    self.logInfo("we have to buy high, cancelling existing order and buying instantly", 1)
+                                    var result = await self.client.getAccountBalance(false)
+                                    self.logInfo(result, 1)
+                                    self.amount = parseFloat(result[self.currency + "_available"]).toFixed(4)
+                                    self.logInfo(`amount we can spend ${self.amount}`, 1)
 
-                                var resultCreate = await self.client.createInstantBuyOrder(self.amount)
-                                connection.close()
-                                self.logInfo({ "instant buy order": resultCreate }, 1)
+                                    var resultCreate = await self.client.createInstantBuyOrder(self.amount)
+                                    connection.close()
+                                    self.logInfo({ "instant buy order": resultCreate }, 1)
 
+                                }
+                            }
+
+                            // now to the heartbeat stuff
+                            if (0 == minute % self.configuration.heartBeat) {
+                                if (!heartBeatUpdated) {
+                                    self.logInfo(`We are running ${new Date()} and current price is ${price}`, 1)
+                                    console.log("this is heartbeat")
+                                    heartBeatUpdated = true
+                                }
+                            } else {
+                                heartBeatUpdated = false
                             }
                         }
-
-                        // now to the heartbeat stuff
-                        if (0 == minute % self.configuration.heartBeat) {
-                            if (!heartBeatUpdated) {
-                                self.logInfo(`We are running ${new Date()} and current price is ${price}`, 1)
-                                console.log("this is heartbeat")
-                                heartBeatUpdated = true
-                            }
-                        } else {
-                            heartBeatUpdated = false
-                        }
-
                         // now read the thresholds
                         if (0 == minute % self.configuration.thresholdIntervall) {
                             if (!thresholdsUpdated) {
@@ -157,8 +159,13 @@ class BitstampBot {
                             if (self.executeTrades) {
                                 var result = await self.client.getOpenOrders()
                                 if (0 == result.length) {
-                                    self.logInfo("no open orders, we bought low", 1)
-                                    connection.close()
+
+                                    if (self.willClose) {
+                                        self.logInfo("still no open orders, closing", 1)
+                                        connection.close()
+                                    }
+                                    self.logInfo("no open orders, we bought low, waiting one more intervall to close", 1)
+                                    self.willClose = true
                                 } else {
                                     self.orderId = result[0].id
                                 }

@@ -1,6 +1,6 @@
 {
   "name": "bitstamp_trading_tools",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "modules which make intensive trading at Bitstamp a lot easier",
   "main": "bitstampTools.js",
   "repository": {

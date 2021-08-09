@@ -3,7 +3,6 @@ console.log("bitstampServer.js", version)
 const BitstampClient = require("./bitstampClient.js")
 
 //server.js
-var cookieParser = require('cookie-parser')
 var express = require('express');
 var app = express();
 var session = require('express-session')
@@ -68,7 +67,6 @@ class BitstampGUIServer {
 
         app.use(express.json())
         app.use(express.urlencoded({ extended: true }))
-        app.use(cookieParser())
 
         // app.use(express.static('./html')); // set default directory
 
@@ -86,7 +84,6 @@ class BitstampGUIServer {
 
 
         app.get('/', (request, response) => {
-            console.log('Cookies: ', request.cookies)
             this.logInfo("***** reloading page", 1)
             this.client.setProfile(defaultProfile)
             this.currentCurrency = defaultProfile.defaultCurrency.toLowerCase()
@@ -568,11 +565,11 @@ class BitstampGUIServer {
                     }
 
                 }
-                this.logInfo({ fromAccountID: fromAccountID, toAccountID: toAccountID }, 2)
+                this.logInfo({ fromAccountID: fromAccountID, toAccountID: toAccountID }, 1)
 
                 // set Main Account
                 var currentProfile = this.currentProfileKey
-                var newProfile = this.profiles["main"]
+                var newProfile = this.profiles["mainAccount"]
                 this.client.setProfile(newProfile)
 
                 // transferFunds

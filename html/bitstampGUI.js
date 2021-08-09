@@ -1363,12 +1363,15 @@ function toggleDarkMode() {
         darkMode = true
     }
     myCookie['dark-mode'] = darkMode
-    document.cookie = "settings=" + JSON.stringify(myCookie)
+
+    var expiration_date = new Date();
+    expiration_date.setFullYear(expiration_date.getFullYear() + 1);
+    document.cookie = "settings=" + JSON.stringify(myCookie) + "; path=/; expires=" + expiration_date.toUTCString();
 
 }
 
 function getCookie() {
-    return
+
     let name = "settings=";
     let decodedCookie = decodeURIComponent(document.cookie);
     let ca = decodedCookie.split(';');
