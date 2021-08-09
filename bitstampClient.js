@@ -1,4 +1,4 @@
-const version = "1.4.0"
+const version = "1.4.1"
 console.log("bitstampClient.js", version)
 const utf8 = require("utf8")
 const crypto = require('crypto'); // responsible to create the nonce
