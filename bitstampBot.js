@@ -1,0 +1,238 @@
+const version = "2.0.0"
+console.log("bitstampBot.js", version)
+const BitstampClient = require("./bitstampClient.js")
+const fs = require('fs');
+var WebSocketClient = require('websocket').client;
+
+
+
+class BitstampBot {
+
+    constructor(configuration) {
+        this.configuration = configuration
+        this.client = new BitstampClient(configuration)
+        this.executeTrades = configuration.executeTrades
+        this.account = configuration.defaultProfile
+        this.currency = configuration.defaultProfile.defaultCurrency.toLowerCase()
+        this.crypto = configuration.defaultProfile.defaultCrypto.toLowerCase()
+
+        this.logInfo({ "currency": this.currency }, 2)
+        this.logInfo({ "crypto": this.crypto }, 2)
+        this.willRun = false
+        this.willClose = false
+
+    }
+
+    async init() {
+        var willRun = false
+
+
+        var result = await this.client.getAccountBalance(false)
+        this.logInfo(result, 2)
+        // this.amount = parseFloat(result[this.crypto + "_available"]) // to test
+        this.amount = parseFloat(result[this.currency + "_available"]).toFixed(4)
+        this.fee = parseFloat(result["fee"])
+        this.realAmount = (this.amount * (1 - this.fee / 100)).toFixed(4)
+        const condAmount = 20 < this.amount
+        const condTrades = this.executeTrades
+        const condFile = fs.existsSync(this.configuration.path_bot_thresholds)
+        if (!condTrades || (condAmount && condFile)) {
+            willRun = true
+        }
+
+        if (condFile) {
+            // file does not contain high nor low
+            if (! await this.readThresholds()) {
+                this.logInfo(`File "${this.configuration.path_bot_thresholds}" does not contain high and/or low value`, 1)
+                willRun = false
+            }
+        } else {
+            if (condTrades) {
+                this.logInfo(`Please make sure the file "${this.configuration.path_bot_thresholds}" exists`, 1)
+                willRun = false
+            }
+
+        }
+        this.willRun = willRun
+    }
+
+    async run() {
+        var heartBeatUpdated = false
+        var thresholdsUpdated = false
+
+        var self = this
+        if (self.willRun) {
+            self.logInfo("Bot is starting…", 1)
+            self.logInfo(`We are ${self.executeTrades ? "" : " NOT "} executing trades`, 1)
+            self.logInfo(`We buy high at ${self.high}`, 1)
+            self.logInfo(`We buy low at ${self.low}`, 1)
+            self.logInfo(`Current ${self.currency} balance is ${self.amount}`, 1)
+            self.logInfo(`Current fee is ${self.fee}`, 1)
+            self.logInfo("stop the bot with <ctrl><c> or by closing this window", 1)
+            // if executeTrades then create limit buy order at low
+            if (self.executeTrades) {
+                // calculate proper amount: usd - fee
+                self.logInfo(`Amount available to buy ${self.realAmount}`, 1)
+
+                var resultCreate = await self.client.createLimitBuyOrder((self.realAmount / self.low).toFixed(8), self.low)
+                self.orderId = resultCreate.id
+                self.logInfo({ "Created buy order": resultCreate }, 1)
+                if ("error" == resultCreate.status) {
+                    self.logInfo(`Bot won't run, check ${self.currency} balance ${self.executeTrades ? " or executeTrades flag in configuration" : ""}`, 1)
+                    return
+                }
+
+            }
+
+            var client = new WebSocketClient();
+
+            let apiCall = {
+                "event": "bts:subscribe",
+                "data": {
+                    "channel": "live_trades_xrpusd"
+                }
+            }
+
+            client.on('connectFailed', function (error) {
+                console.log('Connect Error: ' + error.toString());
+            });
+
+            client.on('connect', function (connection) {
+
+                self.logInfo('WebSocket Client Connected', 1);
+                connection.on('error', function (error) {
+                    console.log("Connection Error: " + error.toString());
+                });
+                connection.on('close', function () {
+                    console.log('Connection Closed');
+                });
+                connection.on('message', async function (message) {
+
+                    var response = JSON.parse(message.utf8Data)
+                    self.logInfo(response, 3)
+                    if ("bts:subscription_succeeded" == response.event) {
+                        self.logInfo("successfully subscribed to ticker", 1)
+                        return
+                    }
+                    if ('trade' == response.event) {
+                        var minute = new Date().getMinutes()
+                        var price = response.data.price
+
+                        if (!self.willClose) {
+                            if (self.executeTrades) {
+                                if (price >= self.high) {
+                                    var resultCancel = await self.client.doCancelOrder(self.orderId)
+                                    self.logInfo(resultCancel, 1)
+                                    self.logInfo("we have to buy high, cancelling existing order and buying instantly", 1)
+                                    var result = await self.client.getAccountBalance(false)
+                                    self.logInfo(result, 1)
+                                    self.amount = parseFloat(result[self.currency + "_available"]).toFixed(4)
+                                    self.logInfo(`amount we can spend ${self.amount}`, 1)
+
+                                    var resultCreate = await self.client.createInstantBuyOrder(self.amount)
+                                    connection.close()
+                                    self.logInfo({ "instant buy order": resultCreate }, 1)
+
+                                }
+                            }
+
+                            // now to the heartbeat stuff
+                            if (0 == minute % self.configuration.heartBeat) {
+                                if (!heartBeatUpdated) {
+                                    self.logInfo(`We are running ${new Date()} and current price is ${price}`, 1)
+                                    console.log("this is heartbeat")
+                                    heartBeatUpdated = true
+                                }
+                            } else {
+                                heartBeatUpdated = false
+                            }
+                        }
+                        // now read the thresholds
+                        if (0 == minute % self.configuration.thresholdIntervall) {
+                            if (!thresholdsUpdated) {
+                                var oldHigh = self.high
+                                await self.readThresholds()
+                                if (oldHigh != self.high) {
+                                    self.logInfo(`We have updated bot thresholds: high=${self.high} / low=${self.low}`, 1)
+                                }
+                                thresholdsUpdated = true
+                            }
+
+                            if (self.executeTrades) {
+                                var result = await self.client.getOpenOrders()
+                                if (0 == result.length) {
+
+                                    if (self.willClose) {
+                                        self.logInfo("still no open orders, closing", 1)
+                                        connection.close()
+                                    }
+                                    self.logInfo("no open orders, we bought low, waiting one more intervall to close", 1)
+                                    self.willClose = true
+                                } else {
+                                    self.orderId = result[0].id
+                                }
+                            }
+                        } else {
+                            thresholdsUpdated = false
+                        }
+
+
+
+                    }
+                    if ("bts:request_reconnect" == response.event) {
+                        self.logInfo("reconnecting to the ticker", 1)
+                        connection.send(JSON.stringify(apiCall))
+                    }
+
+                });
+
+                if (connection.connected) {
+
+                    connection.send(JSON.stringify(apiCall));
+
+                }
+            });
+
+            client.connect(self.configuration.ws_endpoint);
+
+
+        } else {
+            self.logInfo(`Bot won't run, check ${self.currency} balance ${self.configuration.executeTrades ? " or executeTrades flag in configuration" : ""}`, 1)
+        }
+
+    }
+
+    async readThresholds() {
+        const data = fs.readFileSync(this.configuration.path_bot_thresholds)
+        if (0 <= data.indexOf("high") && 0 <= data.indexOf("low")) {
+            var params = JSON.parse(data)
+            this.high = params.high
+            this.low = params.low
+            this.logInfo({ "current bot threshold - high": this.high }, 2)
+            this.logInfo({ "current bot threshold - low": this.low }, 2)
+            return true
+        } else {
+            return false
+        }
+    }
+
+    logInfo(info, level) {
+        // it not debugging, do not output to console
+
+        if (this.configuration.debug) {
+            if (level <= this.configuration.debugLevel) {
+                console.log(info)
+            }
+        }
+        // always output to file
+
+        if ('object' == typeof (info)) {
+            info = JSON.stringify(info, null, 4)
+        }
+        // here we write a file
+        fs.appendFileSync(this.configuration.path_log, info);
+        fs.appendFileSync(this.configuration.path_log, "\r");
+    }
+}
+
+module.exports = BitstampBot

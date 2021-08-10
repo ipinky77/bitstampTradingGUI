@@ -1,0 +1,360 @@
+/*
+    version 1.2.0
+*/
+html{
+    max-width: 600px;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font: 14px Arial, sans-serif;
+    max-width: 600px;
+}
+
+.dark-mode{
+        background-color: rgb(46, 43, 43);
+    color: rgb(252, 247, 247)
+}
+
+#content{
+    width: 600px
+}
+
+
+.dark-mode a{
+    text-decoration: none;
+    border:0;
+    margin:0;
+    color: rgb(18, 156, 138)
+}
+
+.dark-mode  a:hover{
+    color: rgb(30, 190, 169)
+}
+
+
+a{
+    text-decoration: none;
+    border:0;
+    margin:0;
+    color: rgb(8, 75, 177)
+}
+
+a:hover{
+    color: rgb(45, 116, 223)
+}
+
+
+/* a:link img {border : none;outline:none} */
+
+a{
+    font-weight: bold;
+}
+table{
+    border-spacing: 1em;
+    border-collapse: collapse;
+
+}
+
+td {
+    margin-bottom: 10px;
+    padding: 5px 5px 5px 0px;
+}
+
+.noSpace{
+    margin: 0;
+    padding: 0;
+
+}
+
+#label{
+    width: 150px
+
+}
+.value{
+    text-align: right;
+    vertical-align: middle;
+}
+
+hr {
+    margin: 30;
+}
+
+.column_first{
+    width: 180px;
+}
+
+.column{
+    width: 180px;
+}
+
+.column_label{
+    text-align: right;
+    font-weight: bold;
+}
+
+.row_label{
+    text-align: left;
+    font-weight: bold;
+}
+
+
+tr.top_border td{
+    border-top: 1px solid black;
+}
+
+tr.bottom_border td, tr.bottom_border th{
+    border-bottom: 1px solid black;
+}
+
+tr.double_bottom_border td, tr.double_bottom_border th{
+    border-bottom: 2px solid black;
+}
+
+
+tr.top_border td{
+    border-top: 1px solid black;
+}
+
+.dark-mode tr.top_border td{
+    border-top: 1px solid rgb(252, 247, 247);
+}
+
+.dark-mode tr.bottom_border td, .dark-mode tr.bottom_border th{
+    border-bottom: 1px solid rgb(252, 247, 247);
+}
+
+.dark-mode tr.double_bottom_border td,.dark-mode tr.double_bottom_border th{
+    border-bottom: 2px solid rgb(252, 247, 247);
+}
+
+
+.dark-mode tr.top_border td{
+    border-top: 1px solid rgb(252, 247, 247);
+}
+
+
+#nothing{
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.img_link{
+    border: 1px solid white;
+    margin: 0;
+    padding: 0;
+}
+
+
+#labelSell{
+    text-align: center;
+    font-weight: bold;
+    font: 1.2em Arial;
+
+}
+
+#labelSell>a, .typeSell{
+    text-decoration: none;
+    color: red;
+}
+
+#labelSell>a:hover{
+    color:lightcoral;
+}
+
+
+#labelBuy{
+    text-align: center;
+    font-weight: bold;
+    font: 1.2em Arial;
+}
+
+#labelBuy>a, .typeBuy{
+    text-decoration: none;
+    color:green;
+}
+
+#labelBuy>a:hover{
+    color:lightgreen;
+}
+
+input{
+width: 6em;
+  padding: 5px 5px;
+    font-size:1em ;
+  text-align: right;
+  border: 1px solid rgb(216, 204, 204);
+}
+
+.dark-mode img,img{
+    border: none;
+    outline: none;
+    padding-left: 3px;
+}
+
+.dark-mode input {
+    color: rgb(252, 247, 247);
+    background: transparent;
+    border: 1px solid rgb(226, 219, 219);
+}
+
+#currencyPairs, #Accounts{
+    display: none;
+
+}
+
+#currencyPairsContainer{
+    display: flex;
+
+}
+
+#currencyPairsContainer span{
+    width: 50px
+}
+
+.left{
+    float:left
+}
+.right{
+    margin-left: 50px
+}
+
+#pairsByCrypto{
+    flex: 0 0 50%;
+}
+
+#pairsByCurrency{
+    flex: 1;
+}
+
+#transactionsContainer{
+    text-align: right;
+}
+
+#transactionsContainer td, #transactionsContainer th{
+    padding: 10px
+}
+
+.columnAccount{
+    width: 175px
+}
+
+.columnCurrency{
+    width: 175px
+}
+
+
+.columnAmount{
+    width: 120px
+}
+
+.total{
+    font-weight: bold;   
+}
+
+#transfer{
+    padding: 20px
+}
+
+#maskEditor #originalPrice{
+    font-family: monospace;
+}
+#markerContainer{
+    z-index: -1;
+    position: relative;
+    top: -24px;
+    right: -16px;
+    padding: 0px;
+    margin: 0px;
+}
+
+.greenMarker{
+    font-family: monospace;
+    background-color: green;
+    opacity: 0.5;
+    width: 8px;
+}
+
+.redMarker{
+    font-family: monospace;
+    background-color: red;
+    opacity: 0.5;
+    width: 8px;
+}
+
+.yellowMarker{
+    font-family: monospace;
+    background-color: yellow;
+    opacity: 0.5;
+    width: 8px;
+}
+
+.blueMarker{
+    font-family: monospace;
+    background-color: blue;
+    opacity: 0.5;
+    width: 8px;
+}
+
+.emptyMarker{
+    font-family: monospace;
+    background-color: white;
+    opacity: 0.5;
+    width: 8px;
+}
+
+/* tool tips */
+    /* Tooltip container */
+    .tooltip {
+        position: relative;
+        display: inline-block;
+        /* If you want dots under the hoverable text */
+    }
+
+    /* Tooltip text */
+    .tooltip .tooltiptext {
+        text-align: left;
+        color: black;
+        visibility: hidden;
+        background-color: rgb(217, 188, 241);
+        padding: 10px 10px;
+        border-radius: 6px;
+        min-width: 200px;
+        /* Position the tooltip text - see examples below! */
+        position: absolute;
+        z-index: 1;
+    }
+
+    /* Show the tooltip text when you mouse over the tooltip container */
+    .tooltip:hover .tooltiptext {
+        visibility: visible;
+    }
+
+    #block {
+        display: block;
+        height: 00px
+    }
+
+    .tooltip .Summary{
+        display: block;
+        font-weight: bold;
+        /* margin-bottom: 20px; */
+    }
+
+    .tooltip .Example{
+        display: block;
+        font-weight: normal;
+        font-style: italic;
+        /* margin-bottom: 20px; */
+        padding-bottom: 20px;
+    }
+
+    .tooltip .Attention{
+        display: block;
+        font-weight: normal;
+        font-style:normal;
+        color: red;
+        /* margin-bottom: 20px; */
+    }
