@@ -1,4 +1,4 @@
-const version = "1.4.2"
+const version = "2.0.0"
 console.log("bitstampServer.js", version)
 const BitstampClient = require("./bitstampClient.js")
 
@@ -497,8 +497,8 @@ class BitstampGUIServer {
                     currency_available: result[this.currentCurrency + '_available'], currency_reserved: result[this.currentCurrency + '_reserved']
                 }
                 if (this.configuration.simulate) {
-                    balances["crypto_available"] = 1000
-                    balances["currency_available"] = 1000
+                    balances["crypto_reserved"] = 1000
+                    balances["currency_reserved"] = 2000
                 }
                 this.logInfo({ "returned to GUI": balances }, 2)
                 response.json(balances)

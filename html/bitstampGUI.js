@@ -606,43 +606,50 @@ function getCurrentPrice() {
 }
 
 function getTargetPrice(manuallyInvoked = false) {
-    var result
     const fee = parseFloat($("#fee").text())
-    const crypto_expected = parseFloat($("#crypto_expected").text())
-    const currency_available = parseInt($("#currency_available").text())
+    const crypto_reserved = parseInt($("#crypto_reserved").text())
     const currency_reserved = parseInt($('#currency_reserved').text())
     var amount = 0
     if (manuallyInvoked && 20 > currency_available && 20 > currency_reserved) {
         alert('only works with available or reserved currency (minimum 20$)')
         return
     }
-    if (0 == currency_reserved) {
-        amount = currency_available
-    } else {
+    if ("BUY" == $("#orderType").text()) {
         amount = currency_reserved
+        amount = amount * (1 + fee / 100)
+        const crypto_target = parseFloat($("#crypto_target").val())
+        $("#price_required").val((amount / crypto_target).toFixed(decimals))
+    } else {
+        amount = crypto_reserved
+        amount = amount * (1 - fee / 100)
+        const crypto_target = parseFloat($("#crypto_target").val())
+        $("#price_required").val((crypto_target / amount).toFixed(decimals))
     }
-    amount = amount * (1 - fee / 100)
-    const crypto_target = parseFloat($("#crypto_target").val())
-    $("#price_required").val((amount / crypto_target).toFixed(decimals))
+
 }
 
 function getTargetCrypto(manuallyInvoked = false) {
     const fee = parseFloat($("#fee").text())
-    const currency_available = parseInt($("#currency_available").text())
+    const crypto_reserved = parseInt($("#crypto_reserved").text())
     const currency_reserved = parseInt($('#currency_reserved').text())
     var amount
     if (manuallyInvoked && 20 >= currency_available && 20 >= currency_reserved) {
         alert('only works with available or reserved currency (minimum 20$)')
         return
     }
-    if (0 == currency_reserved) {
-        amount = currency_available
-    } else {
+    if ("BUY" == $("#orderType").text()) {
         amount = currency_reserved
+        amount = amount * (1 - fee / 100)
+        const price_required = parseFloat($("#price_required").val())
+        $("#crypto_target").val((amount / price_required).toFixed(8))
+
+    } else {
+        amount = crypto_reserved
+        amount = amount * (1 - fee / 100)
+        const price_required = parseFloat($("#price_required").val())
+        $("#crypto_target").val((amount * price_required).toFixed(8))
+
     }
-    amount = amount * (1 - fee / 100)
-    const price_required = parseFloat($("#price_required").val())
-    $("#crypto_target").val((amount / price_required).toFixed(8))
 }
 
 function getOpenOrder() {
