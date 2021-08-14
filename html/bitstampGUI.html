@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
+    <link rel="stylesheet" href="/bitstampGUI.css">
+    <script src="//code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="bitstampGUI.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="version" content="1.2.0">
+    <title>Bitstamp GUI</title>
+</head>
+<script>
+
+
+
+
+    $(document).ready(function () {
+        var today = new Date()
+        strToday = today.toISOString().split('T')[0]
+        $("#dateFrom").val(strToday)
+
+        getCookie()
+        myCookie['dark-mode'] = !myCookie['dark-mode']
+        toggleDarkMode()
+
+        init()
+
+
+    });
+
+    $(function () {
+        $("#dateFrom").datepicker({ dateFormat: "yy-mm-dd" });
+    });
+
+
+    $(document).mousemove(function (e) {
+        mouseX = e.pageX; // 0 = left
+        mouseY = e.pageY; // 0 = top
+    });
+</script>
+
+<body>
+    <div id="content">
+        <table>
+            <tr>
+                <td>Profile</td>
+                <td> <select name="profile" id="profile"
+                        onchange="changeProfile(this.options[this.selectedIndex].value)">
+                    </select>
+                </td>
+                <td>Page</td>
+                <td><select name="pages" id="page" onchange="changePage(this.options[this.selectedIndex].value)">
+                        <option value="Trading">Trading</option>
+                        <option value="currencyPairs">Currency pairs</option>
+                        <option value="Transactions">Transactions</option>
+                        <option value="Accounts">Accounts/Transfers</option>
+                    </select></td>
+                <td class="column column_label"><a href="javascript:toggleDarkMode()">toggle Mode</a></td>
+            </tr>
+        </table>
+
+        <div id="Trading">
+
+
+            <table>
+                <tr>
+                    <th class="row_label column_first"><a href="javascript:getBalance()">Get Balances</a></th>
+                    <th class="column column_label">
+                        <select name="crypto" id="baseCrypto"
+                            onchange="setCurrencyOptions(this.options[this.selectedIndex].value, true)">
+                            <option value="default">default</option>
+                            <option value="XRP">XRP</option>
+                            <option value="BTC">BTC</option>
+                        </select>
+                    </th>
+                    <th class="column column_label">
+                        <select name="currency" id="baseCurrency"
+                            onchange="setCryptoOptions(this.options[this.selectedIndex].value, true)">
+                            <option value="default">default</option>
+                            <option value="USD">USD</option>
+                            <option value="USD">EUR</option>
+                        </select>
+
+                    </th>
+                </tr>
+                <tr>
+                    <td class="row_label">Available</td>
+
+                    <td class="value">
+                        <span id="crypto_available"></span>
+                    </td>
+                    <td class="value">
+                        <span id="currency_available"></span>
+                    </td>
+
+                </tr>
+                <tr>
+                    <td class="row_label column_label">Reserved <div id="reservedBalances" class="tooltip">
+                            <img src="images/question_mark.png"
+                                onmouseover="javascript:toolTip('reservedBalances','reservedBalances.html')">
+                            </image>
+                            <span class="tooltiptext"></span>
+                        </div>
+                    </td>
+
+                    <td class="value">
+                        <span id="crypto_reserved"></span>
+                    </td>
+                    <td class="value">
+                        <span id="currency_reserved"></span>
+                    </td>
+
+                </tr>
+
+                <tr class="bottom_border">
+                    <td class="row_label">Fee</td>
+                    <td class="value">
+
+                    </td>
+                    <td class="value">
+                        <span id="fee" value=""></span>%
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="row_label"><a href="javascript:getLastSellPrice()">Get last Sell Price</a>
+
+                    </td>
+                    <td class="value">
+                        <span id="sellPrice"></span>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="row_label"> <a href="javascript:getMinMaxPrice()">Get Min/Max</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="3">
+                        <table>
+                            <tr>
+                                <th></th>
+                                <th class="column_label">no loss <div id="zeroLoss" class="tooltip">
+                                        <img src="images/question_mark.png"
+                                            onmouseover="javascript:toolTip('zeroLoss','zeroLoss.html')">
+                                        </image>
+                                        <span class="tooltiptext"></span>
+                                    </div>
+                                </th>
+                                <th class="column_label">Min</th>
+                                <th class="column_label">Max</th>
+                            </tr>
+                            <tr>
+                                <td class="row_label" width="180">Percent</td>
+                                <td class="value" width="120">0%</td>
+                                <td class="value" width="120"><input id="minimum" type="text" value="-4"></input>%</td>
+                                <td class="value" width="120"><input id="maximum" type="text" value="+3"></input>%</td>
+
+                            </tr>
+                            <tr>
+                                <td class="row_label">Price</td>
+                                <td class="value">
+                                    <span id="zeroLossPrice">
+                                    </span>
+                                </td>
+
+                                <td class="value">
+                                    <span id="minimumPrice"></span>
+                                <td class="value">
+                                    <span id="maximumPrice"></span>
+                                </td>
+                            </tr>
+                            <tr class="bottom_border">
+                                <td class="row_label">expected <span class="crypto"></span></td>
+                                <td class="value">
+                                    <span id="zeroLossCrypto">
+                                    </span>
+                                </td>
+
+                                <td class="value">
+                                    <span id="minimumCrypto"></span>
+                                <td class="value">
+                                    <span id="maximumCrypto"></span>
+                                </td>
+                            </tr>
+
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="row_label column_first"><a href="javascript:getCurrentPrice()">Get current Price </a>
+                        <div id="getCurrentPrice" class="tooltip">
+                            <img src="images/question_mark.png"
+                                onmouseover="javascript:toolTip('getCurrentPrice','getCurrentPrice.html')">
+                            </image>
+                            <span class="tooltiptext"></span>
+                        </div>
+                    </td>
+                    <td class="value column">
+                        <span id="currentPrice" value=""></span>
+                    </td>
+
+                </tr>
+                <tr>
+                    <td class="row_label column_first"><a href="javascript:getTargetCrypto(true)">Get target <span
+                                class="crypto"></span></a>
+                        <div id="getTargetCrypto" class="tooltip">
+                            <img src="images/question_mark.png"
+                                onmouseover="javascript:toolTip('getTargetCrypto','getTargetCrypto.html')">
+                            </image>
+                            <span class="tooltiptext"></span>
+                        </div>
+                    </td>
+                    <td class="value column">
+                        <input id="crypto_target" value=""></input>
+                    </td>
+                    <td class="column value">target <span class="crypto"></span></td>
+
+                </tr>
+                <tr class="bottom_border">
+                    <td class="row_label"><a href="javascript:getTargetPrice(true)">Get target Price</a>
+                        <div id="getTargetPrice" class="tooltip">
+                            <img src="images/question_mark.png"
+                                onmouseover="javascript:toolTip('getTargetPrice','getTargetPrice.html')">
+                            </image>
+                            <span class="tooltiptext"></span>
+                        </div>
+                    </td>
+                    </td>
+                    <td class="value">
+                        <input id="price_required" value=""></input>
+                    </td>
+
+                    <td class="column value">target price</td>
+
+                </tr>
+                <tr>
+                    <td class="row_label"><a href="javascript:getOpenOrder()">Get open Order</a></td>
+                    <td class="value">
+                        <span id="orderID"></span>
+                    </td>
+                    <td class="value"><span id="orderType"></span></td>
+                </tr>
+                <tr>
+                    <td colspan="3">
+                        <table>
+                            <tr>
+                                <th width="180"></th>
+                                <th class="column_label" width="120">actual</th>
+                                <th class="column_label" width="120">down</th>
+                                <th class="column_label" width="120">up</th>
+                            </tr>
+                            <tr>
+                                <td class="row_label">Price</td>
+                                <td class="value">
+                                    <span id="buyPrice"></span>
+                                </td>
+                                <td class="value"><span id="downPrice"></span></td>
+                                <td class="value"><span id="upPrice"></span></td>
+
+                            </tr>
+                            <tr>
+                                <td class="row_label"><span class="crypto"></span></td>
+                                <td class="value">
+                                    <span id="buyCrypto"></span>
+                                </td>
+                                <td class="value"><span id="downXRP"></span>
+                                </td>
+                                <td class="value"><span id="upXRP"></span></td>
+
+                            </tr>
+
+                            <tr>
+                                <td></td>
+                                <td class="column_label">
+                                    <a class="noSpace" href="javascript:changeOrderPriceBy('1000','up')">
+                                        <image class="img_link" src="images/Arrow_up.png"></image>
+                                    </a> <a class="noSpace" href="javascript:changeOrderPriceBy('0100','up')">
+                                        <image class="img_link" src="images/Arrow_up.png"></image>
+                                    </a> <a class="noSpace" href="javascript:changeOrderPriceBy('0010','up')">
+                                        <image class="img_link" src="images/Arrow_up.png"></image>
+                                    </a>
+                                    </a> <a class="noSpace" href="javascript:changeOrderPriceBy('0001','up')">
+                                        <image class="img_link" src="images/Arrow_up.png"></image>
+                                    </a>
+                                </td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td class="row_label">
+                                    Change by
+                                </td>
+                                <td class="value"><input id="decreasePrice" value="0.0005"></input></td>
+                                <td class="value">
+                                    </a><a href="javascript:cancelOrder('lower')">
+                                        <image class="img_link" src="images/decreaseOrderPrice.png"></image>
+                                    </a>
+
+                                </td>
+                                <td class="value">
+                                    <a href="javascript:cancelOrder('higher')">
+                                        <image class="img_link" src="images/increaseOrderPrice.png"></image>
+                                </td>
+
+                            </tr>
+                            <tr class="bottom_border">
+                                <td><a href="javascript:showMaskEditor()">show Mask Editor</a></td>
+                                <td class="column_label">
+                                    <a class="noSpace" href="javascript:changeOrderPriceBy('1000','down')">
+                                        <image class="img_link" src="images/Arrow_down.png"></image>
+                                    </a> <a class="noSpace" href="javascript:changeOrderPriceBy('0100','down')">
+                                        <image class="img_link" src="images/Arrow_down.png"></image>
+                                    </a> <a class="noSpace" href="javascript:changeOrderPriceBy('0010','down')">
+                                        <image class="img_link" src="images/Arrow_down.png"></image>
+                                    </a>
+                                    </a> <a class="noSpace" href="javascript:changeOrderPriceBy('0001','down')">
+                                        <image class="img_link" src="images/Arrow_down.png"></image>
+                                    </a>
+                                </td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        </table>
+                        <div id="maskEditor"></div>
+                    </td>
+                </tr>
+                <tr class="bottom_border">
+                    <td class="row_label">
+                        Bot will buy high at
+                    </td>
+                    <td class="value">
+                        <input name="newHigh" id="newHigh" size="8em" value="">
+                    </td>
+                    <td class="value">
+                        <a href="javascript:writeBotThresholds()">write bot thresholds</a>
+                        <div id="writeBotThresholds" class="tooltip">
+                            <img src="images/question_mark.png"
+                                onmouseover="javascript:toolTip('writeBotThresholds','writeBotThresholds.html')">
+                            </image>
+                            <span class="tooltiptext"></span>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="bottom_border">
+                    <td class="row_label">
+                        Bot will buy low at
+                    </td>
+                    <td class="value">
+                        <input name="newLow" id="newLow" size="8em" value="">
+                    </td>
+                    <td class="value">
+                        <a href="javascript:copyMinMaxValues()">use values from Min/Max section</a>
+                    </td>
+                </tr>
+
+
+
+
+                <tr class="bottom_border">
+                    <td colspan="3">
+                        <div id="labelSell"><a href="javascript:sellNow()">Sell now</a></div>
+                    </td>
+
+
+                </tr>
+
+
+                <tr class="bottom_border">
+                    <td colspan="3">
+                        <div id="labelBuy"><a href="javascript:buyNow()">Buy now</a></div>
+                    </td>
+
+
+                </tr>
+            </table>
+        </div>
+        <div id="currencyPairs">
+            <div id="currencyPairsContainer">
+                <div id="pairsByCrypto">pairs by Crypto</div>
+                <div id="pairsByCurrency">pairs by Currency</div>
+            </div>
+        </div>
+        <div id="Transactions">
+            <table>
+                <tr>
+                    <td>Date from (Format YYYY-MM-DD)</td>
+                    <td><input name="dateFrom" id="dateFrom" /></td>
+                    <td><a href="javascript:getTransactions()">Get Transactions</a></td>
+                    <td><a id="download" style="display:none" href="/">Download</a></td>
+                </tr>
+            </table>
+            <div id="transactionsContainer">
+
+            </div>
+        </div>
+        <div id="Accounts">
+            <span id="accountsOverview"></span>
+            <div id="transfer">Transfer from <select id="fromAccount"
+                    onchange="populateCurrencyToTransfer(this.options[this.selectedIndex].value)">
+                    <option>default</option>
+                </select> to <select id="toAccount">
+                    <option>default</option>
+                </select> <input id="transferAmount"></input>
+                <select id="transferCurrency">
+                    <option>default</option>
+                </select>
+                <button onclick="javascript:transferFunds()">Do it</button>
+            </div>
+        </div>
+    </div>
+    <div id="version">Version 2.0.0</div>
+</body>
+
+</html>

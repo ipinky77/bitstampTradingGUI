@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
+    <script src="//code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="version" content="1.1">
+    <title>Selector Example with jQueryUI selectmenu</title>
+</head>
+
+<style>
+    .ui-menu {
+
+        background-color: rgb(65, 60, 60);
+
+        color: rgb(240, 227, 227)
+    }
+
+    .ui-selectmenu {
+        width: 100%;
+    }
+
+    .ui-selectmenu-button,
+    .ui-selectmenu-button-closed,
+    .ui-selectmenu-button-open {
+        background-image: none;
+        background-color: rgb(65, 60, 60);
+        border-color: rgb(240, 227, 227);
+        color: rgb(240, 227, 227)
+    }
+
+    .ui-button:hover,
+    .ui-button:focus {
+        background-image: none;
+        background-color: rgb(109, 103, 103);
+        border-color: rgb(240, 227, 227);
+        color: rgb(240, 227, 227)
+    }
+
+    .ui-selectmenu-button.ui-button {
+        width: 3em;
+    }
+
+    body {
+        background-color: darkgray;
+    }
+</style>
+
+<body>
+
+    crypto
+    <select name="crypto" id="baseCrypto" onchange="setCurrency(this.options[this.selectedIndex].value)">
+
+    </select>
+    <p>
+
+    </p>
+    currency
+    <select name="currency" id="baseCurrency" onchange="setCrypto(this.options[this.selectedIndex].value)">
+
+    </select>
+    <p />
+    <a
+        href="https://stackoverflow.com/questions/41570175/how-set-individual-styles-css-for-option-in-selectmenu-jquery-ui-selectmenu">help
+        on selectmenu</a>
+    <script>
+        $("#baseCurrency").selectmenu();
+        $("#baseCrypto").selectmenu();
+        $('#baseCurrency').on('selectmenuchange', function () { setCrypto($('#baseCurrency').val()) })
+        $('#baseCrypto').on('selectmenuchange', function () { setCurrency($('#baseCrypto').val()) })
+        defaultCrypto = "XRP"
+        defaultCurrency = "USD"
+        var cryptos = []
+
+        var currencies = []
+
+
+        currencyPairs = { BTCUSD: { crypto: "BTC", currency: "USD" }, BTCGBP: { crypto: "BTC", currency: "GBP" }, BTCEUR: { crypto: "BTC", currency: "EUR" }, BTCUSDT: { crypto: "BTC", currency: "USDT" }, BTCUSDC: { crypto: "BTC", currency: "USDC" }, BTCPAX: { crypto: "BTC", currency: "PAX" }, XRPBTC: { crypto: "XRP", currency: "BTC" }, XRPUSD: { crypto: "XRP", currency: "USD" }, XRPGBP: { crypto: "XRP", currency: "GBP" }, XRPEUR: { crypto: "XRP", currency: "EUR" }, XRPUSDT: { crypto: "XRP", currency: "USDT" }, XRPPAX: { crypto: "XRP", currency: "PAX" }, UNIBTC: { crypto: "UNI", currency: "BTC" }, UNIUSD: { crypto: "UNI", currency: "USD" }, UNIEUR: { crypto: "UNI", currency: "EUR" }, LTCBTC: { crypto: "LTC", currency: "BTC" }, LTCUSD: { crypto: "LTC", currency: "USD" }, LTCGBP: { crypto: "LTC", currency: "GBP" }, LTCEUR: { crypto: "LTC", currency: "EUR" }, LINKBTC: { crypto: "LINK", currency: "BTC" }, LINKUSD: { crypto: "LINK", currency: "USD" }, LINKGBP: { crypto: "LINK", currency: "GBP" }, LINKEUR: { crypto: "LINK", currency: "EUR" }, LINKETH: { crypto: "LINK", currency: "ETH" }, XLMBTC: { crypto: "XLM", currency: "BTC" }, XLMUSD: { crypto: "XLM", currency: "USD" }, XLMGBP: { crypto: "XLM", currency: "GBP" }, XLMEUR: { crypto: "XLM", currency: "EUR" }, BCHBTC: { crypto: "BCH", currency: "BTC" }, BCHUSD: { crypto: "BCH", currency: "USD" }, BCHGBP: { crypto: "BCH", currency: "GBP" }, BCHEUR: { crypto: "BCH", currency: "EUR" }, AAVEBTC: { crypto: "AAVE", currency: "BTC" }, AAVEUSD: { crypto: "AAVE", currency: "USD" }, AAVEEUR: { crypto: "AAVE", currency: "EUR" }, ALGOBTC: { crypto: "ALGO", currency: "BTC" }, ALGOUSD: { crypto: "ALGO", currency: "USD" }, ALGOEUR: { crypto: "ALGO", currency: "EUR" }, COMPBTC: { crypto: "COMP", currency: "BTC" }, COMPUSD: { crypto: "COMP", currency: "USD" }, COMPEUR: { crypto: "COMP", currency: "EUR" }, SNXBTC: { crypto: "SNX", currency: "BTC" }, SNXUSD: { crypto: "SNX", currency: "USD" }, SNXEUR: { crypto: "SNX", currency: "EUR" }, BATBTC: { crypto: "BAT", currency: "BTC" }, BATUSD: { crypto: "BAT", currency: "USD" }, BATEUR: { crypto: "BAT", currency: "EUR" }, MKRBTC: { crypto: "MKR", currency: "BTC" }, MKRUSD: { crypto: "MKR", currency: "USD" }, MKREUR: { crypto: "MKR", currency: "EUR" }, ZRXBTC: { crypto: "ZRX", currency: "BTC" }, ZRXUSD: { crypto: "ZRX", currency: "USD" }, ZRXEUR: { crypto: "ZRX", currency: "EUR" }, YFIBTC: { crypto: "YFI", currency: "BTC" }, YFIUSD: { crypto: "YFI", currency: "USD" }, YFIEUR: { crypto: "YFI", currency: "EUR" }, UMABTC: { crypto: "UMA", currency: "BTC" }, UMAUSD: { crypto: "UMA", currency: "USD" }, UMAEUR: { crypto: "UMA", currency: "EUR" }, OMGBTC: { crypto: "OMG", currency: "BTC" }, OMGUSD: { crypto: "OMG", currency: "USD" }, OMGGBP: { crypto: "OMG", currency: "GBP" }, OMGEUR: { crypto: "OMG", currency: "EUR" }, KNCBTC: { crypto: "KNC", currency: "BTC" }, KNCUSD: { crypto: "KNC", currency: "USD" }, KNCEUR: { crypto: "KNC", currency: "EUR" }, CRVBTC: { crypto: "CRV", currency: "BTC" }, CRVUSD: { crypto: "CRV", currency: "USD" }, CRVEUR: { crypto: "CRV", currency: "EUR" }, AUDIOBTC: { crypto: "AUDIO", currency: "BTC" }, AUDIOUSD: { crypto: "AUDIO", currency: "USD" }, AUDIOEUR: { crypto: "AUDIO", currency: "EUR" }, GRTUSD: { crypto: "GRT", currency: "USD" }, GRTEUR: { crypto: "GRT", currency: "EUR" }, DAIUSD: { crypto: "DAI", currency: "USD" }, GUSDUSD: { crypto: "GUSD", currency: "USD" }, GBPUSD: { crypto: "GBP", currency: "USD" }, GBPEUR: { crypto: "GBP", currency: "EUR" }, EURUSD: { crypto: "EUR", currency: "USD" }, ETHBTC: { crypto: "ETH", currency: "BTC" }, ETHUSD: { crypto: "ETH", currency: "USD" }, ETHGBP: { crypto: "ETH", currency: "GBP" }, ETHEUR: { crypto: "ETH", currency: "EUR" }, ETH2ETH: { crypto: "ETH", currency: "2ETH" }, ETHUSDT: { crypto: "ETH", currency: "USDT" }, ETHUSDC: { crypto: "ETH", currency: "USDC" }, ETHPAX: { crypto: "ETH", currency: "PAX" }, USDTUSD: { crypto: "USDT", currency: "USD" }, USDTEUR: { crypto: "USDT", currency: "EUR" }, USDCUSD: { crypto: "USDC", currency: "USD" }, USDCEUR: { crypto: "USDC", currency: "EUR" }, USDCUSDT: { crypto: "USDC", currency: "USDT" }, PAXUSD: { crypto: "PAX", currency: "USD" }, PAXGBP: { crypto: "PAX", currency: "GBP" }, PAXEUR: { crypto: "PAX", currency: "EUR" } }
+
+        reduceLists(defaultCurrency, defaultCrypto)
+
+        setCrypto(defaultCrypto)
+        setCurrency(defaultCurrency)
+
+        $("#baseCrypto").val(defaultCrypto);
+        $("#baseCurrency").val(defaultCurrency);
+        // copyCP = JSON.parse(JSON.stringify(currencyPairs));
+        // find all currencies for crypto
+        function reduceLists(selectedCurrency, selectedCrypto) {
+            cryptos = []
+            currencies = []
+
+            for ([key, value] of Object.entries(currencyPairs)) {
+                if (selectedCrypto == value.crypto) {
+                    // add to currencies
+                    if (selectedCrypto != value.currency) {
+                        currencies.push(value.currency)
+                    }
+
+                }
+                if (selectedCurrency == value.currency) {
+                    // add to cryptos
+                    if (selectedCrypto != value.currency) {
+                        cryptos.push(value.crypto)
+                    }
+                }
+            }
+            cryptos.sort()
+            currencies.sort()
+        }
+
+        function setCrypto(selectedCurrency) {
+
+            selectedCrypto = $("#baseCrypto option:selected").text();
+            if ("" != selectedCrypto) {
+                reduceLists(selectedCurrency, selectedCrypto)
+            }
+
+            var $el = $("#baseCrypto");
+            $el.empty(); // remove old options
+
+
+            for (i = 0; i < cryptos.length; i++) {
+                item = cryptos[i]
+                $el.append($("<option></option>")
+                    .attr("value", item).text(item));
+
+            }
+
+            $("#baseCrypto").val(selectedCrypto);
+            $("#baseCrypto").selectmenu("destroy")
+            $("#baseCrypto").selectmenu()
+        }
+        function setCurrency(selectedCrypto) {
+            selectedCurrency = $("#baseCurrency option:selected").text();
+
+            if ("" != selectedCurrency) {
+                reduceLists(selectedCurrency, selectedCrypto)
+            }
+
+            var $el = $("#baseCurrency");
+            $el.empty(); // remove old options
+
+            currencies.forEach(function (item, index) {
+                $el.append($("<option></option>")
+                    .attr("value", item).text(item));
+            });
+
+            $("#baseCurrency").val(selectedCurrency);
+            $("#baseCurrency").selectmenu("destroy")
+            $("#baseCurrency").selectmenu()
+        }
+
+
+    </script>
+</body>
+
+</html>
