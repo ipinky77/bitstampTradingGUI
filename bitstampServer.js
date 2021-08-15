@@ -1,4 +1,4 @@
-const version = "2.0.5"
+const version = "2.0.6"
 console.log("bitstampServer.js", version)
 const BitstampClient = require("./bitstampClient.js")
 
@@ -35,6 +35,7 @@ class BitstampGUIServer {
         this.currentProfileKey = this.defaultProfileKey
         console.log("profiles", this.profiles)
         const defaultProfile = this.profiles.defaultProfile
+        const profile = this.profiles.defaultProfile
         this.defaultProfile = this.profiles.defaultProfile
         this.logInfo({ "default profile": defaultProfile }, 3)
 
