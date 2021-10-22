@@ -48,6 +48,10 @@ class BitstampGUIServer {
 
         // const path = require('path')
 
+        // prepare currenices/crypto/pairs
+        this.cryptoPairs = {}
+        this.prepareCCP()
+
         process.once('SIGINT', function (code) {
             console.log('SIGINT received, shutting down...');
             process.exit()
@@ -370,10 +374,11 @@ class BitstampGUIServer {
                         console.log(err);
                         response.json({ result: "failure" })
                     }
-                    logInfo("new thresholds written for bot to pick up", 1);
-                    response.json({ result: "success" })
 
                 });
+                logInfo("new thresholds written for bot to pick up", 1);
+                response.json({ result: "success" })
+
 
             } catch (e) {
                 console.log(e)
@@ -392,9 +397,10 @@ class BitstampGUIServer {
                         console.log(err);
                         response.json({ result: "failure" })
                     }
-                    logInfo("masks have been written", 1);
-                    response.json({ result: "success" })
                 });
+                logInfo("masks have been written", 1);
+                response.json({ result: "success" })
+
             } catch (e) {
                 console.log(e)
             }
@@ -532,9 +538,13 @@ class BitstampGUIServer {
 
             try {
                 var result = await this.getAccountsOverview()
-
+                this.logInfo("accountsOverview")
+                this.logInfo(result, 3)
                 var mydata = new Array()
                 var accBalances = result.rearrangedAccountsBalances
+                this.logInfo("rearrangedAccountsBalances")
+                this.logInfo(accBalances, 3)
+
                 for (var c in accBalances) {
                     for (var a in accBalances[c]) {
                         var e = { account: a, currency: c, available: accBalances[c][a].available, reserved: accBalances[c][a].reserved }
@@ -543,6 +553,24 @@ class BitstampGUIServer {
 
                 }
 
+                response.json(mydata)
+
+            } catch (e) {
+                console.log(e)
+            }
+
+        });
+
+        app.get('/getCryptoPairs', async (request, response) => {
+
+            try {
+                console.log("return currency pairs")
+                let mydata = {}
+                for (let i = 0; i < this.cryptoPairs.length; i++) {
+                    var pair = this.cryptoPairs[i][0] + this.cryptoPairs[i][1]
+                    mydata[pair.toUpperCase()] = { crypto: this.cryptoPairs[i][0].toUpperCase(), currency: this.cryptoPairs[i][1].toUpperCase() }
+                }
+                // console.log("return crypto pairs", mydata)
                 response.json(mydata)
 
             } catch (e) {
@@ -843,10 +871,10 @@ class BitstampGUIServer {
 
     async getAccountsOverview() {
         var allAccountsBalances = {}
-        for (var a in this.profile.profiles) {
-            if ("uniqueID" in this.profile.profiles[a]) {
-                var profileName = this.profile.profiles[a].name
-                await this.client.setProfile(this.profile.profiles[a])
+        for (var a in this.profiles) {
+            if ("uniqueID" in this.profiles[a]) {
+                var profileName = this.profiles[a].name
+                await this.client.setProfile(this.profiles[a])
                 var result = await this.client.getAccountBalance(true)
                 allAccountsBalances[profileName] = result
 
@@ -957,6 +985,91 @@ class BitstampGUIServer {
 
 
         return restructured
+    }
+
+    async prepareCCP() {
+
+        // get all balances
+        currencies = await this.client.getAccountBalance(true)
+
+        const asArray = Object.entries(currencies);
+
+        // first filter all withdrawal_fees _reserved or _balance
+        var tempAvailableCurrencies = asArray.filter(([key, value]) => {
+            // console.log(key)
+            if (0 < key.indexOf("_withdrawal")) {
+                return false;
+            }
+            if (0 < key.indexOf("_balance")) {
+                return false;
+            }
+
+            if (0 < key.indexOf("_reserved")) {
+                return false;
+            }
+            return true;
+        });
+
+        // now filter available currencies
+        var temp2AvailableCurrencies = tempAvailableCurrencies.filter(([key, value]) => {
+            return 0 < key.indexOf("available")
+        });
+
+        // now filter fees
+        var tempFees = tempAvailableCurrencies.filter(([key, value]) => {
+            return 0 < key.indexOf("fee")
+        });
+
+        // clean available currencies from _available
+        var availableCurrencies = []
+        for (var i = 0; i < temp2AvailableCurrencies.length; i++) {
+            var pos = temp2AvailableCurrencies[i][0].indexOf("_")
+            var c = temp2AvailableCurrencies[i][0].substring(0, pos)
+            availableCurrencies.push(c)
+        }
+
+        // clean fees from _fee, those are finally the pairs
+        var fees = []
+        for (var i = 0; i < tempFees.length; i++) {
+            // console.log(tempAvailableCurrencies[i][0])
+            var pos = tempFees[i][0].indexOf("_")
+            var c = tempFees[i][0].substring(0, pos)
+            // console.log("fee: ", c)
+            fees.push(c)
+        }
+
+        var currencies = []
+        var crypto = []
+        var pairs = []
+        // check which currency IS a currency, and which is a crypto
+        for (let i = 0; i < availableCurrencies.length; i++) {
+            for (let j = 0; j < fees.length; j++) {
+                let pos = fees[j].indexOf(availableCurrencies[i])
+                let length = availableCurrencies[i].length
+                if (0 == pos) {
+                    // we found a crypto
+                    crypto.push(availableCurrencies[i])
+                    currencies.push(fees[j].substring(length))
+                    // set the pair
+                    pairs.push([availableCurrencies[i], fees[j].substring(length)])
+                } else if (pos > 0) {
+                    // we found a a currency
+                    currencies.push(availableCurrencies[i])
+                    crypto.push(fees[j].substring(length))
+                    pairs.push([fees[j].substring(length), availableCurrencies[i]])
+                }
+            }
+        }
+
+        // remove duplicates
+        crypto = [...new Set(crypto)]
+        currencies = [...new Set(currencies)]
+
+        this.cryptoPairs = pairs
+        // console.log(crypto)
+        // console.log(currencies)
+        // console.log(pairs)
+
     }
 }
 

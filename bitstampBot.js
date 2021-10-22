@@ -1,4 +1,4 @@
-const version = "2.0.5"
+const version = "2.0.6"
 console.log("bitstampBot.js", version)
 const BitstampClient = require("./bitstampClient.js")
 const fs = require('fs');
@@ -14,6 +14,20 @@ class BitstampBot {
         this.executeTrades = profile.executeTrades
         this.currency = profile.defaultCurrency.toLowerCase()
         this.crypto = profile.defaultCrypto.toLowerCase()
+        if ("debug" in profile) {
+            this.debug = profile.debug
+            this.logInfo(`we run in debug mode\t${this.debug}`, 2)
+        } else {
+            this.logInfo("debug parameter not set in profile, using false as default", 2)
+            this.debug = false
+        }
+        if ("lowerPrice" in profile) {
+            this.lowerPrice = profile.lowerPrice
+            this.logInfo(`we lower prices\t${this.lowerPrice}`, 2)
+        } else {
+            this.logInfo("lowerPrice parameter not set in profile, using false as default", 2)
+            this.lowerPrice = false
+        }
 
         this.logInfo({ "currency": this.currency }, 2)
         this.logInfo({ "crypto": this.crypto }, 2)
@@ -41,7 +55,7 @@ class BitstampBot {
 
         if (condFile) {
             // file does not contain high nor low
-            if (! await this.readThresholds()) {
+            if (! await this.readThresholds(true)) {
                 this.logInfo(`File "${this.profile.path_bot_thresholds}" does not contain high and/or low value`, 1)
                 willRun = false
             }
@@ -52,6 +66,12 @@ class BitstampBot {
             }
 
         }
+
+        if (this.debug) {
+            this.logInfo("We run in debug mode, like executing trades, but not", 2)
+            willRun = true
+        }
+
         this.willRun = willRun
     }
 
@@ -63,24 +83,36 @@ class BitstampBot {
         if (self.willRun) {
             self.logInfo("Bot is starting…", 1)
             self.logInfo(`We are ${self.executeTrades ? "" : " NOT "} executing trades`, 1)
-            self.logInfo(`We buy high at ${self.high}`, 1)
-            self.logInfo(`We buy low at ${self.low}`, 1)
+            if (self.debug) {
+                self.logInfo(`We are in debug mode: like executing trades, but not executing them`, 1)
+            }
+            var priceHigh = self.referenceSellPrice * (1 + self.high / 100)
+            self.logInfo(`------------------`, 1)
+            self.logInfo(`Reference sell price ${self.referenceSellPrice}`, 1)
+            self.logInfo(`We buy high with ${self.high}% loss at ${priceHigh}`, 1)
+            self.buyPrice = (self.referenceSellPrice * (1 + (self.low / 100))).toFixed(4)
+            self.logInfo(`We buy low with ${self.low}% profit at ${self.buyPrice}`, 1)
+            self.logInfo(`------------------`, 1)
             self.logInfo(`Current ${self.currency} balance is ${self.amount}`, 1)
             self.logInfo(`Current fee is ${self.fee}`, 1)
             self.logInfo("stop the bot with <ctrl><c> or by closing this window", 1)
             // if executeTrades then create limit buy order at low
-            if (self.executeTrades) {
+            if (self.executeTrades && !self.debug) {
                 // calculate proper amount: usd - fee
                 self.logInfo(`Amount available to buy ${self.realAmount}`, 1)
 
-                var resultCreate = await self.client.createLimitBuyOrder((self.realAmount / self.low).toFixed(8), self.low)
+                var resultCreate = await self.client.createLimitBuyOrder((self.realAmount / self.buyPrice).toFixed(4), self.buyPrice)
                 self.orderId = resultCreate.id
                 self.logInfo({ "Created buy order": resultCreate }, 1)
                 if ("error" == resultCreate.status) {
-                    self.logInfo(`Bot won't run, check ${self.currency} balance ${self.executeTrades ? " or executeTrades flag in profile" : ""}`, 1)
+                    self.logInfo(`Buy order failed`, 1)
+                    console.log(resultCreate)
                     return
                 }
 
+            } else {
+
+                self.logInfo(`We would, but we don't, create a buy order for ${(self.realAmount / self.buyPrice).toFixed(4)} at ${self.buyPrice}`, 1)
             }
 
             var client = new WebSocketClient();
@@ -118,21 +150,60 @@ class BitstampBot {
                         var price = response.data.price
 
                         if (!self.willClose) {
-                            if (self.executeTrades) {
-                                if (price >= self.high) {
-                                    var resultCancel = await self.client.doCancelOrder(self.orderId)
-                                    self.logInfo(resultCancel, 1)
-                                    self.logInfo("we have to buy high, cancelling existing order and buying instantly", 1)
-                                    var result = await self.client.getAccountBalance(false)
-                                    self.logInfo(result, 1)
-                                    self.amount = parseFloat(result[self.currency + "_available"]).toFixed(4)
-                                    self.logInfo(`amount we can spend ${self.amount}`, 1)
+                            if (self.executeTrades || self.debug) {
+                                if (price >= self.referenceSellPrice * (1 + (self.high / 100))) {
+                                    if (!self.debug) {
+                                        var resultCancel = await self.client.doCancelOrder(self.orderId)
+                                        self.logInfo(resultCancel, 1)
+                                        self.logInfo("we have to buy high, cancelling existing order and buying instantly", 1)
+                                        var result = await self.client.getAccountBalance(false)
+                                        self.logInfo(result, 1)
+                                        self.amount = parseFloat(result[self.currency + "_available"]).toFixed(4)
+                                        self.logInfo(`amount we can spend ${self.amount}`, 1)
 
-                                    var resultCreate = await self.client.createInstantBuyOrder(self.amount)
-                                    connection.close()
-                                    self.logInfo({ "instant buy order": resultCreate }, 1)
+                                        var resultCreate = await self.client.createInstantBuyOrder(self.amount)
+                                        connection.close()
+                                        self.logInfo({ "instant buy order": resultCreate }, 1)
+                                    }
+                                }
+                                // if set in profile to "lowerPrices"
+                                if (self.lowerPrice) {
+                                    // now check if half of the low has been overcome and lower buyPrice
+                                    var whenToLower = self.referenceSellPrice * (1 + (self.low / 100 / 2))
+                                    if (price <= whenToLower) {
+                                        // if we anyway do have a current order, then cancel it and recreate the new one at the lower price
+                                        var prevReferenceSellPrice = self.referenceSellPrice
+                                        self.referenceSellPrice = whenToLower
+                                        self.buyPrice = (self.referenceSellPrice * (1 + (self.low / 100))).toFixed(4)
+                                        if (!self.debug) {
+                                            var result = await self.client.getOpenOrders()
+                                        }
+                                        if (self.debug || 0 < result.length) {
+                                            // cancel order
+                                            if (!self.debug) {
+                                                var resultCancel = await self.client.doCancelOrder(self.orderId)
+                                                self.logInfo(resultCancel, 1)
+                                                self.logInfo("we lower reference sell price now", 1)
+                                                var result = await self.client.getAccountBalance(false)
+                                                self.logInfo(result, 1)
+                                                self.amount = parseFloat(result[self.currency + "_available"]).toFixed(4)
+
+
+                                            }
+                                            // create new order
+                                            if (!self.debug) {
+                                                var resultCreate = await self.client.createLimitBuyOrder((self.realAmount / self.buyPrice).toFixed(4), self.buyPrice)
+                                                self.orderId = resultCreate.id
+                                                self.logInfo({ "Created buy order": resultCreate }, 1)
+                                            }
+
+                                            self.logInfo(`previous reference sell price ${prevReferenceSellPrice} \t current reference sell price ${self.referenceSellPrice}`, 1)
+                                            self.logInfo(`created new buy order at lower price ${self.buyPrice}`, 1)
+                                        }
+                                    }
 
                                 }
+
                             }
 
                             // now to the heartbeat stuff
@@ -141,6 +212,7 @@ class BitstampBot {
                                     self.logInfo(`We are running ${new Date()} and current price is ${price}`, 1)
                                     console.log("this is heartbeat")
                                     heartBeatUpdated = true
+
                                 }
                             } else {
                                 heartBeatUpdated = false
@@ -149,15 +221,13 @@ class BitstampBot {
                         // now read the thresholds
                         if (0 == minute % self.profile.thresholdIntervall) {
                             if (!thresholdsUpdated) {
-                                var oldHigh = self.high
-                                await self.readThresholds()
-                                if (oldHigh != self.high) {
-                                    self.logInfo(`We have updated bot thresholds: high=${self.high} / low=${self.low}`, 1)
-                                }
+                                var prevBuyPrice = self.buyPrice
+                                await self.readThresholds(false)
                                 thresholdsUpdated = true
+                                self.buyPrice = prevBuyPrice
                             }
 
-                            if (self.executeTrades) {
+                            if (self.executeTrades && !self.debug) {
                                 var result = await self.client.getOpenOrders()
                                 if (0 == result.length) {
 
@@ -202,14 +272,32 @@ class BitstampBot {
 
     }
 
-    async readThresholds() {
+    async readThresholds(logToScreen) {
         const data = fs.readFileSync(this.profile.path_bot_thresholds)
+        var prevReferenceSellPrice = 0
+        if (this.referenceSellPrice) {
+            prevReferenceSellPrice = this.referenceSellPrice
+        }
         if (0 <= data.indexOf("high") && 0 <= data.indexOf("low")) {
             var params = JSON.parse(data)
+            var prevHigh = this.high
+            var prevLow = this.low
             this.high = params.high
             this.low = params.low
-            this.logInfo({ "current bot threshold - high": this.high }, 2)
-            this.logInfo({ "current bot threshold - low": this.low }, 2)
+            this.referenceSellPrice = params.referenceSellPrice
+            if (0 != prevReferenceSellPrice) {
+                this.referenceSellPrice = prevReferenceSellPrice
+            }
+            if (prevHigh != this.high || prevLow != this.log) {
+                this.logInfo({ "new bot threshold - high": this.high }, 3)
+                this.logInfo({ "new bot threshold - low": this.low }, 3)
+                this.logInfo({ "new bot threshold - referenceSellPrice": this.referenceSellPrice }, 3)
+            }
+            if (logToScreen) {
+                this.logInfo({ "bot threshold - high": this.high }, 3)
+                this.logInfo({ "bot threshold - low": this.low }, 3)
+                this.logInfo({ "bot threshold - referenceSellPrice": this.referenceSellPrice }, 3)
+            }
             return true
         } else {
             return false
@@ -219,7 +307,7 @@ class BitstampBot {
     logInfo(info, level) {
         // it not debugging, do not output to console
 
-        if (this.profile.debug) {
+        if (this.profile.logToScreen) {
             if (level <= this.profile.debugLevel) {
                 console.log(info)
             }
