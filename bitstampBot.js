@@ -14,6 +14,7 @@ class BitstampBot {
         this.executeTrades = profile.executeTrades
         this.currency = profile.defaultCurrency.toLowerCase()
         this.crypto = profile.defaultCrypto.toLowerCase()
+        this.timesLowered = 0
         if ("debug" in profile) {
             this.debug = profile.debug
             this.logInfo(`we run in debug mode\t${this.debug}`, 2)
@@ -151,7 +152,11 @@ class BitstampBot {
 
                         if (!self.willClose) {
                             if (self.executeTrades || self.debug) {
-                                if (price >= self.referenceSellPrice * (1 + (self.high / 100))) {
+                                var high = self.high
+                                if (self.timesLowered >= 2) {
+                                    high = high / 2
+                                }
+                                if (price >= self.referenceSellPrice * (1 + (high / 100))) {
                                     if (!self.debug) {
                                         var resultCancel = await self.client.doCancelOrder(self.orderId)
                                         self.logInfo(resultCancel, 1)
@@ -171,6 +176,7 @@ class BitstampBot {
                                     // now check if half of the low has been overcome and lower buyPrice
                                     var whenToLower = self.referenceSellPrice * (1 + (self.low / 100 / 2))
                                     if (price <= whenToLower) {
+                                        self.timesLowered++
                                         // if we anyway do have a current order, then cancel it and recreate the new one at the lower price
                                         var prevReferenceSellPrice = self.referenceSellPrice
                                         self.referenceSellPrice = whenToLower
@@ -288,15 +294,15 @@ class BitstampBot {
             if (0 != prevReferenceSellPrice) {
                 this.referenceSellPrice = prevReferenceSellPrice
             }
-            if (prevHigh != this.high || prevLow != this.log) {
-                this.logInfo({ "new bot threshold - high": this.high }, 3)
-                this.logInfo({ "new bot threshold - low": this.low }, 3)
-                this.logInfo({ "new bot threshold - referenceSellPrice": this.referenceSellPrice }, 3)
+            if ((prevHigh != this.high || prevLow != this.low) && !(logToScreen)) {
+                this.logInfo({ "new bot threshold - high": this.high }, 2)
+                this.logInfo({ "new bot threshold - low": this.low }, 2)
+                this.logInfo({ "new bot threshold - referenceSellPrice": this.referenceSellPrice }, 2)
             }
             if (logToScreen) {
-                this.logInfo({ "bot threshold - high": this.high }, 3)
-                this.logInfo({ "bot threshold - low": this.low }, 3)
-                this.logInfo({ "bot threshold - referenceSellPrice": this.referenceSellPrice }, 3)
+                this.logInfo({ "bot threshold - high": this.high }, 2)
+                this.logInfo({ "bot threshold - low": this.low }, 2)
+                this.logInfo({ "bot threshold - referenceSellPrice": this.referenceSellPrice }, 2)
             }
             return true
         } else {
