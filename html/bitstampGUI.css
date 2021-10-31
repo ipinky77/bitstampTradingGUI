@@ -33,6 +33,16 @@ body {
     color: rgb(30, 190, 169)
 }
 
+button {
+    border: none;
+    background: none;
+}
+
+button:active {
+    /* background-color: orange;
+    box-shadow: 0 5px gray; */
+    transform: translateY(2px);
+}
 
 a{
     text-decoration: none;
@@ -141,7 +151,7 @@ tr.top_border td{
     border: 0;
 }
 
-.img_link{
+.img_linkX{
     border: 1px solid white;
     margin: 0;
     padding: 0;

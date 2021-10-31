@@ -1,4 +1,4 @@
-const version = "2.0.5"
+const version = "2.0.8"
 console.log("bitstampClient.js", version)
 const utf8 = require("utf8")
 const crypto = require('crypto'); // responsible to create the nonce
@@ -31,7 +31,7 @@ class BitstampClient {
 
     setUrls() {
         // POST urls, corresponding to a getUserTransactions("limit=3")
-        this.userTransactions = "/api/v2/user_transactions/" // time=minute/hour/day
+        this.userTransactions = `/api/v2/user_transactions/${this.crypto}${this.currency}/` // time=minute/hour/day
         this.openOrders = `/api/v2/open_orders/${this.crypto}${this.currency}/`
         this.accountBalance = "/api/v2/balance/"
         this.cancelOrder = "/api/v2/cancel_order/" // id=orderId
@@ -165,6 +165,7 @@ class BitstampClient {
     }
     // per default get the last 2 user transactions
     async getUserTransactions(fields = "limit=2") {
+        // console.log(this.userTransactions)
         return await this.doPost(this.userTransactions, fields)
     }
 

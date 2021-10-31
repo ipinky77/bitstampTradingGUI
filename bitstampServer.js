@@ -1,4 +1,4 @@
-const version = "2.0.6"
+const version = "2.0.8"
 console.log("bitstampServer.js", version)
 const BitstampClient = require("./bitstampClient.js")
 
@@ -466,12 +466,25 @@ class BitstampGUIServer {
 
         });
 
-        app.get('/getLastSellPrice', async (request, response) => {
+        app.post('/getLastTradePrice', async (request, response) => {
+            // param type = true: we look for buy price
+            // param type = false: we look for sell price
+            let body = request.body
+            console.log(body)
 
             try {
-                var lastSellPrice = await this.getLastSellPrice()
-                this.logInfo({ "last sell price": lastSellPrice }, 2)
-                response.json(lastSellPrice)
+                if (body.type) {
+                    // console.log("looking for buy price")
+                    var lastBuyPrice = await this.getLastTradePrice(true)
+                    this.logInfo({ "last buy price": lastBuyPrice }, 2)
+                    response.json(lastBuyPrice)
+                } else {
+                    // console.log("looking for sell price")
+
+                    var lastSellPrice = await this.getLastTradePrice(false)
+                    this.logInfo({ "last sell price": lastSellPrice }, 2)
+                    response.json(lastSellPrice)
+                }
 
             } catch (e) {
                 console.log(e)
@@ -510,6 +523,18 @@ class BitstampGUIServer {
                 }
                 this.logInfo({ "returned to GUI": balances }, 2)
                 response.json(balances)
+
+            } catch (e) {
+                console.log(e)
+            }
+
+        });
+
+        app.get('/getMode', async (request, response) => {
+
+            try {
+
+                response.json(this.profile.simulate)
 
             } catch (e) {
                 console.log(e)
@@ -758,29 +783,49 @@ class BitstampGUIServer {
 
     }
 
-    async getLastSellPrice() {
+    async getLastTradePrice(type) {
+        // type = true: we look for buy price
+        // type = false: we look for sell price
         var transactionFound = false
-        var transactions = await this.client.getUserTransactions("limit=250")
-        var lowestPrice = -1
+        var transactions = await this.client.getUserTransactions("limit=1000")
+        var tradePrice = -1
         var order_id = ""
+        console.log(this.currentCrypto)
+        // if (true == type) {
+        //     console.log("looking for buy price")
+        // } else {
+
+        //     console.log("looking for sell price")
+        // }
         for (var transaction in transactions) {
             // console.log(transactions[transaction])
 
             var order_id = transactions[transaction].order_id
-            var xrp = parseFloat(transactions[transaction][`${this.currentCrypto}`])
+            var crypto = parseFloat(transactions[transaction][`${this.currentCrypto}`])
             var type = transactions[transaction].type
-            if (type == '2' && xrp < 0) {
-                transactionFound = true
+            if (true === type) {
+                if (type == '1' && crypto > 0) {
+                    transactionFound = true
 
-                // console.log(`found sell transaction\t${order_id}`)
-                lowestPrice = await this.getLowestPrice(order_id)
-                break
+                    // console.log(`found sell transaction\t${order_id}`)
+                    tradePrice = await this.getLowestPrice(order_id)
+                    break
+                }
+            } else {
+
+                if (type == '2' && crypto < 0) {
+                    transactionFound = true
+
+                    // console.log(`found sell transaction\t${order_id}`)
+                    tradePrice = await this.getLowestPrice(order_id)
+                    break
+                }
             }
         }
-        if (lowestPrice == -1) {
-            lowestPrice = NaN
+        if (tradePrice == -1) {
+            tradePrice = NaN
         }
-        return { "sellPrice": lowestPrice }
+        return { "tradePrice": tradePrice }
     }
 
     async getCurrentPrice() {

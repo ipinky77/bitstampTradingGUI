@@ -1,4 +1,4 @@
-const version = "2.0.6"
+const version = "2.0.8"
 console.log("bitstampGUI.js", version)
 var currentCurrency = ""
 var currentCrypto = ""
@@ -15,11 +15,19 @@ var currencyPairs = {}
 
 function init() {
     getCryptoPairs()
-    // changePage("Trading")
+    changePage("pageTrading")
     getProfiles()
     getCurrency()
     getCrypto()
     getMasks()
+    var mode = getMode()
+    var holdingCrypto = areWeHoldingCrypto()
+    if (holdingCrypto) {
+        $(".crypto").text(currentCurrency)
+    } else {
+        $(".crypto").text(currentCrypto)
+
+    }
 
     reduceLists(currentCurrency, currentCrypto)
     console.log("currentCurrency: " + currentCurrency)
@@ -34,13 +42,51 @@ function init() {
     getCurrentMask()
     getCurrentPrice()
     getBalance()
-    getLastSellPrice()
+    getLastTradePrice()
 
     getMinMaxPrice()
 
     getOpenOrder()
     updateUpDownPrice()
     readBotThresholds()
+
+}
+
+function setBalance(mode) {
+    if (mode) {
+        $("#currency_available").text(0)
+        $("#currency_reserved").text(10000)
+        $("#crypto_available").text(0)
+        $("#crypto_reserved").text(0)
+        $(".crypto").text(currentCrypto)
+    } else {
+        $("#currency_available").text(0)
+        $("#currency_reserved").text(0)
+        $("#crypto_available").text(0)
+        $("#crypto_reserved").text(1000)
+        $(".crypto").text(currentCurrency)
+    }
+
+}
+
+
+function getMode() {
+    var scriptUrl = "/getMode";
+    $.ajax({
+        url: scriptUrl,
+        type: 'get',
+        dataType: 'html',
+        async: false,
+        success: function (data) {
+            result = JSON.parse(data)
+        }, timeout: 30000
+    });
+
+    console.log("simulate", result)
+    $("#mode").val(result)
+    if (result) {
+        $("#simulate").show()
+    }
 }
 
 function changeProfile(profile) {
@@ -438,7 +484,7 @@ function setCurrency(currency) {
     getCurrentMask()
     getCurrentPrice()
     getBalance()
-    getLastSellPrice()
+    getLastTradePrice()
     getMinMaxPrice()
     getOpenOrder()
 
@@ -460,7 +506,6 @@ function getCrypto() {
             result = JSON.parse(data)
         }, timeout: 30000
     });
-    $(".crypto").text(result.crypto)
     $("#baseCrypto").val(result.crypto)
     currentCrypto = result.crypto
     console.log("current crypto: " + result.crypto)
@@ -491,7 +536,7 @@ function setCrypto(cryptocurrency) {
     getCurrentMask()
     getCurrentPrice()
     getBalance()
-    getLastSellPrice()
+    getLastTradePrice()
     getMinMaxPrice()
     getOpenOrder()
 
@@ -537,6 +582,23 @@ function getBalance() {
     getFee()
 }
 
+function getCurrentBalance(crypto) {
+    var available
+    var reserved
+    if (crypto) {
+        available = parseFloat($("#crypto_available").text())
+        reserved = parseFloat($("#crypto_reserved").text())
+    } else {
+        available = parseFloat($("#currency_available").text())
+        reserved = parseFloat($("#currency_reserved").text())
+    }
+    if (0 < reserved) {
+        return reserved
+    } else {
+        return available
+    }
+}
+
 function getFee() {
     var result
     var scriptUrl = "/getFee";
@@ -553,56 +615,105 @@ function getFee() {
     console.log(result)
 }
 
+// tells if we are having either crypto available or reserved
+function areWeHoldingCrypto() {
+    const currency_available = parseFloat($("#currency_available").text())
+    const currency_reserved = parseFloat($("#currency_reserved").text())
+    const crypto_available = parseFloat($("#crypto_available").text())
+    const crypto_reserved = parseFloat($("#crypto_reserved").text())
+    if (1 <= currency_available || 1 <= currency_reserved) {
+        return false
+    } else {
+        return true
+    }
+}
 
-function getLastSellPrice() {
+
+function getLastTradePrice() {
     var result
-    var scriptUrl = "/getLastSellPrice";
+    var scriptUrl = "/getLastTradePrice";
+    const crypto = areWeHoldingCrypto()
+
+    var params = { type: crypto }
+
+    var result
     $.ajax({
         url: scriptUrl,
-        type: 'get',
-        dataType: 'html',
+        type: 'post',
+        dataType: 'json',
+        contentType: 'application/json',
         async: false,
+        data: JSON.stringify(params),
         success: function (data) {
-            result = JSON.parse(data)
+            console.log(data)
+            result = data
         }, timeout: 30000
     });
+
     console.log(result)
-    if (result.sellPrice != null) {
-        $("#sellPrice").text(result.sellPrice.toFixed(decimals))
-        $("#referenceSellPrice").val(result.sellPrice.toFixed(decimals))
+    if (result.tradePrice != null) {
+        $("#tradePrice").text(result.tradePrice.toFixed(decimals))
+        $("#referenceTradePrice").val(result.tradePrice.toFixed(decimals))
         getMinMaxPrice()
     } else {
-        $("#sellPrice").text(NaN)
+        $("#tradePrice").text(NaN)
     }
 }
 
 function getMinMaxPrice() {
+    var holdingCrypto = areWeHoldingCrypto()
+    if (holdingCrypto) {
+        available = parseFloat($("#crypto_available").text())
+        reserved = parseFloat($("#crypto_reserved").text())
+    } else {
+
+        available = parseFloat($("#currency_available").text())
+        reserved = parseFloat($("#currency_reserved").text())
+    }
+
+
     const min = parseFloat($("#minimum").val())
     const max = parseFloat($("#maximum").val())
     const fee = parseFloat($("#fee").text())
-    const sellPrice = parseFloat($("#sellPrice").text())
-    const zeroLossPrice = (sellPrice * (1 - (2 * fee) / 100))
-    const minimumPrice = (sellPrice * (1 + min / 100) * (1 - (2 * fee) / 100))
-    const maximumPrice = (sellPrice * (1 + max / 100) * (1 - (2 * fee) / 100))
+    const tradePrice = parseFloat($("#tradePrice").text())
+    var zeroLossPrice
+    var minimumPrice
+    var maximumPrice
+    if (holdingCrypto) {
+        zeroLossPrice = (tradePrice * (1 + (2 * fee) / 100))
+        minimumPrice = (tradePrice * (1 + min / 100) * (1 + (2 * fee) / 100))
+        maximumPrice = (tradePrice * (1 + max / 100) * (1 + (2 * fee) / 100))
+    } else {
+        zeroLossPrice = (tradePrice * (1 - (2 * fee) / 100))
+        minimumPrice = (tradePrice * (1 + min / 100) * (1 - (2 * fee) / 100))
+        maximumPrice = (tradePrice * (1 + max / 100) * (1 - (2 * fee) / 100))
+    }
     $("#zeroLossPrice").text(zeroLossPrice.toFixed(decimals))
     $("#minimumPrice").text(minimumPrice.toFixed(decimals))
     $("#maximumPrice").text(maximumPrice.toFixed(decimals))
+    var reserved
+    var available
 
-    const currency_available = parseFloat($("#currency_available").text())
-    const currency_reserved = parseFloat($("#currency_reserved").text())
-    if (0 == currency_available && 0 == currency_reserved) {
-        return
-    }
+
     var amount
-    if (0 == currency_reserved) {
-        amount = currency_available
+    if (0 == reserved) {
+        amount = available
     } else {
-        amount = currency_reserved
+        amount = reserved
     }
-    amount = amount * (1 - fee / 100)
-    $("#zeroLossCrypto").text((amount / zeroLossPrice).toFixed(8))
-    $("#minimumCrypto").text((amount / minimumPrice).toFixed(8))
-    $("#maximumCrypto").text((amount / maximumPrice).toFixed(8))
+
+    if (holdingCrypto) {
+        amount = amount * (1 + fee / 100)
+        $("#zeroLossCrypto").text((amount * zeroLossPrice).toFixed(8))
+        $("#minimumCrypto").text((amount * minimumPrice).toFixed(8))
+        $("#maximumCrypto").text((amount * maximumPrice).toFixed(8))
+    } else {
+        amount = amount * (1 - fee / 100)
+        $("#zeroLossCrypto").text((amount / zeroLossPrice).toFixed(8))
+        $("#minimumCrypto").text((amount / minimumPrice).toFixed(8))
+        $("#maximumCrypto").text((amount / maximumPrice).toFixed(8))
+    }
+
 
 }
 
@@ -625,51 +736,41 @@ function getCurrentPrice() {
 }
 
 function getTargetPrice(manuallyInvoked = false) {
-    getOpenOrder()
+
+    var holdingCrypto = areWeHoldingCrypto()
+
     const fee = parseFloat($("#fee").text())
-    const crypto_reserved = parseInt($("#crypto_reserved").text())
-    const currency_reserved = parseInt($('#currency_reserved').text())
-    var amount = 0
-    if (manuallyInvoked && 20 > currency_available && 20 > currency_reserved) {
-        alert('only works with available or reserved currency (minimum 20$)')
-        return
-    }
-    if ("BUY" == $("#orderType").text()) {
-        amount = currency_reserved
-        amount = amount * (1 + fee / 100)
-        const crypto_target = parseFloat($("#crypto_target").val())
-        $("#price_required").val((amount / crypto_target).toFixed(decimals))
-    } else {
-        amount = crypto_reserved
+
+    var amount = getCurrentBalance(holdingCrypto)
+
+    if (holdingCrypto) {
         amount = amount * (1 - fee / 100)
         const crypto_target = parseFloat($("#crypto_target").val())
         $("#price_required").val((crypto_target / amount).toFixed(decimals))
+    } else {
+        amount = amount * (1 + fee / 100)
+        const crypto_target = parseFloat($("#crypto_target").val())
+        $("#price_required").val((amount / crypto_target).toFixed(decimals))
     }
 
 }
 
 function getTargetCrypto(manuallyInvoked = false) {
-    getOpenOrder()
-    const fee = parseFloat($("#fee").text())
-    const crypto_reserved = parseInt($("#crypto_reserved").text())
-    const currency_reserved = parseInt($('#currency_reserved').text())
-    var amount
-    if (manuallyInvoked && 20 >= currency_available && 20 >= currency_reserved) {
-        alert('only works with available or reserved currency (minimum 20$)')
-        return
-    }
-    if ("BUY" == $("#orderType").text()) {
-        amount = currency_reserved
-        amount = amount * (1 - fee / 100)
-        const price_required = parseFloat($("#price_required").val())
-        $("#crypto_target").val((amount / price_required).toFixed(8))
+    var holdingCrypto = areWeHoldingCrypto()
 
-    } else {
-        amount = crypto_reserved
+    const fee = parseFloat($("#fee").text())
+
+    var amount = getCurrentBalance(holdingCrypto)
+
+    if (holdingCrypto) {
         amount = amount * (1 - fee / 100)
         const price_required = parseFloat($("#price_required").val())
         $("#crypto_target").val((amount * price_required).toFixed(8))
 
+    } else {
+        amount = amount * (1 - fee / 100)
+        const price_required = parseFloat($("#price_required").val())
+        $("#crypto_target").val((amount / price_required).toFixed(8))
     }
 }
 
@@ -694,9 +795,7 @@ function getOpenOrder() {
         $("#buyCrypto").text(parseFloat(result.amount * result.price).toFixed(decimals))
         $("#orderType, #buyPrice, #orderID").addClass("typeSell");
         $("#orderType, #buyPrice, #orderID").removeClass("typeBuy");
-        $(".crypto").text(currentCurrency)
     } else if ("0" == result.type) {
-        $(".crypto").text(currentCrypto)
         $("#orderType").text("BUY")
         $("#orderType, #buyPrice, #orderID").addClass("typeBuy");
         $("#orderType, #buyPrice, #orderID").removeClass("typeSell");
@@ -796,13 +895,11 @@ function cancelOrder(type) {
     $("#orderID").text(result.id)
     $("#buyCrypto").text(parseFloat(result.amount).toFixed(8))
     if ("1" == result.type) {
-        $(".crypto").text(currentCurrency)
         $("#orderType").text("SELL")
         $("#orderType, #buyPrice, #orderID").addClass("typeSell");
         $("#orderType, #buyPrice, #orderID").removeClass("typeBuy");
 
     } else {
-        $(".crypto").text(currentCrypto)
         $("#orderType").text("BUY")
         $("#orderType, #buyPrice, #orderID").addClass("typeBuy");
         $("#orderType, #buyPrice, #orderID").removeClass("typeSell");
@@ -834,12 +931,12 @@ function writeBotThresholds() {
     var result
     const high = $("#newHigh").val()
     const low = $("#newLow").val()
-    const price = $("#referenceSellPrice").val()
+    const price = $("#referenceTradePrice").val()
 
     var thresholds = {}
     thresholds['high'] = parseFloat(high)
     thresholds['low'] = parseFloat(low)
-    thresholds['referenceSellPrice'] = parseFloat(price)
+    thresholds['referenceTradePrice'] = parseFloat(price)
 
     var scriptUrl = "/writeBotThresholds";
     $.ajax({
@@ -973,14 +1070,14 @@ function setCurrencyOptions(selectedCrypto, backendRefresh) {
 }
 
 function changePage(id) {
-    const pages = { Trading, currencyPairs, Transactions, Accounts }
+    const pages = { pageTrading, pageCurrencyPairs, pageTransactions, pageAccounts }
 
 
-    if (id == "currencyPairs") {
+    if (id == "pageCurrencyPairs") {
         getCurrencyPairs()
     }
 
-    if (id == "Accounts") {
+    if (id == "pageAccounts") {
         getAccountsOverview()
         populateTransferAccounts()
     }

@@ -9,7 +9,7 @@
     <script src="bitstampGUI.js"></script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="version" content="2.0.7">
+    <meta name="version" content="2.0.8">
     <title>Bitstamp GUI</title>
 </head>
 <script>
@@ -53,16 +53,16 @@
                 </td>
                 <td>Page</td>
                 <td><select name="pages" id="page" onchange="changePage(this.options[this.selectedIndex].value)">
-                        <option value="Trading">Trading</option>
-                        <option value="currencyPairs">Currency pairs</option>
-                        <option value="Transactions">Transactions</option>
-                        <option value="Accounts">Accounts/Transfers</option>
+                        <option value="pageTrading">Trading</option>
+                        <option value="pageCurrencyPairs">Currency pairs</option>
+                        <option value="pageTransactions">Transactions</option>
+                        <option value="pageAccounts">Accounts/Transfers</option>
                     </select></td>
                 <td class="column column_label"><a href="javascript:toggleDarkMode()">toggle Mode</a></td>
             </tr>
         </table>
 
-        <div id="Trading">
+        <div id="pageTrading">
 
 
             <table>
@@ -126,11 +126,11 @@
                 </tr>
 
                 <tr>
-                    <td class="row_label"><a href="javascript:getLastSellPrice()">Get last Sell Price</a>
+                    <td class="row_label"><a href="javascript:getLastTradePrice()">Get last Trade Price</a>
 
                     </td>
                     <td class="value">
-                        <span id="sellPrice"></span>
+                        <span id="tradePrice"></span>
                     </td>
                 </tr>
 
@@ -294,15 +294,16 @@
                                     Change by
                                 </td>
                                 <td class="value"><input id="decreasePrice" value="0.0005"></input></td>
-                                <td class="value">
-                                    </a><a href="javascript:cancelOrder('lower')">
+                                <td>
+                                    <button onclick="javascript:cancelOrder('lower')">
                                         <image class="img_link" src="images/decreaseOrderPrice.png"></image>
-                                    </a>
+                                    </button>
 
                                 </td>
-                                <td class="value">
-                                    <a href="javascript:cancelOrder('higher')">
+                                <td>
+                                    <button onclick="javascript:cancelOrder('higher')">
                                         <image class="img_link" src="images/increaseOrderPrice.png"></image>
+                                    </button>
                                 </td>
 
                             </tr>
@@ -329,10 +330,10 @@
                 </tr>
                 <tr class="bottom_border">
                     <td class="row_label">
-                        Reference sell price
+                        Reference trade price
                     </td>
                     <td class="value">
-                        <input name="referenceSellPrice" id="referenceSellPrice" size="8em" value="">&nbsp&nbsp&nbsp
+                        <input name="referenceTradePrice" id="referenceTradePrice" size="8em" value="">&nbsp&nbsp&nbsp
                     </td>
                     <td class="value"><a href="javascript:getLastSellPrice()">Get last Sell Price</a></td>
                 </tr>
@@ -387,14 +388,20 @@
 
                 </tr>
             </table>
+            <input type="hidden" id="mode" />
+            <div id="simulate" style="display:none">
+                Simulation mode&nbsp
+                <span><a href="javascript:setBalance(false)">Set crypto</a></span>&nbsp
+                <span><a href="javascript:setBalance(true)">Set currency</a></span>
+            </div>
         </div>
-        <div id="currencyPairs">
+        <div id="pageCurrencyPairs">
             <div id="currencyPairsContainer">
                 <div id="pairsByCrypto">pairs by Crypto</div>
                 <div id="pairsByCurrency">pairs by Currency</div>
             </div>
         </div>
-        <div id="Transactions">
+        <div id="pageTransactions">
             <table>
                 <tr>
                     <td>Date from (Format YYYY-MM-DD)</td>
@@ -407,7 +414,7 @@
 
             </div>
         </div>
-        <div id="Accounts">
+        <div id="pageAccounts">
             <span id="accountsOverview"></span>
             <div id="transfer">Transfer from <select id="fromAccount"
                     onchange="populateCurrencyToTransfer(this.options[this.selectedIndex].value)">
@@ -417,9 +424,10 @@
                 </select> <input id="transferAmount"></input>
                 <select id="transferCurrency">
                     <option>default</option>
-                </select>
-                <button onclick="javascript:transferFunds()">Do it</button>
+                </select>&nbsp
+                <a href="javascript:transferFunds()">Do it</a>
             </div>
+
         </div>
     </div>
     <div id="version">Version 2.0.0</div>

@@ -87,11 +87,11 @@ class BitstampBot {
             if (self.debug) {
                 self.logInfo(`We are in debug mode: like executing trades, but not executing them`, 1)
             }
-            var priceHigh = self.referenceSellPrice * (1 + self.high / 100)
+            var priceHigh = self.referenceTradePrice * (1 + self.high / 100)
             self.logInfo(`------------------`, 1)
-            self.logInfo(`Reference sell price ${self.referenceSellPrice}`, 1)
+            self.logInfo(`Reference trade price ${self.referenceTradePrice}`, 1)
             self.logInfo(`We buy high with ${self.high}% loss at ${priceHigh}`, 1)
-            self.buyPrice = (self.referenceSellPrice * (1 + (self.low / 100))).toFixed(4)
+            self.buyPrice = (self.referenceTradePrice * (1 + (self.low / 100))).toFixed(4)
             self.logInfo(`We buy low with ${self.low}% profit at ${self.buyPrice}`, 1)
             self.logInfo(`------------------`, 1)
             self.logInfo(`Current ${self.currency} balance is ${self.amount}`, 1)
@@ -156,7 +156,7 @@ class BitstampBot {
                                 if (self.timesLowered >= 2) {
                                     high = high / 2
                                 }
-                                if (price >= self.referenceSellPrice * (1 + (high / 100))) {
+                                if (price >= self.referenceTradePrice * (1 + (high / 100))) {
                                     if (!self.debug) {
                                         var resultCancel = await self.client.doCancelOrder(self.orderId)
                                         self.logInfo(resultCancel, 1)
@@ -174,13 +174,13 @@ class BitstampBot {
                                 // if set in profile to "lowerPrices"
                                 if (self.lowerPrice) {
                                     // now check if half of the low has been overcome and lower buyPrice
-                                    var whenToLower = self.referenceSellPrice * (1 + (self.low / 100 / 2))
+                                    var whenToLower = self.referenceTradePrice * (1 + (self.low / 100 / 2))
                                     if (price <= whenToLower) {
                                         self.timesLowered++
                                         // if we anyway do have a current order, then cancel it and recreate the new one at the lower price
-                                        var prevReferenceSellPrice = self.referenceSellPrice
-                                        self.referenceSellPrice = whenToLower
-                                        self.buyPrice = (self.referenceSellPrice * (1 + (self.low / 100))).toFixed(4)
+                                        var prevReferenceTradePrice = self.referenceTradePrice
+                                        self.referenceTradePrice = whenToLower
+                                        self.buyPrice = (self.referenceTradePrice * (1 + (self.low / 100))).toFixed(4)
                                         if (!self.debug) {
                                             var result = await self.client.getOpenOrders()
                                         }
@@ -189,7 +189,7 @@ class BitstampBot {
                                             if (!self.debug) {
                                                 var resultCancel = await self.client.doCancelOrder(self.orderId)
                                                 self.logInfo(resultCancel, 1)
-                                                self.logInfo("we lower reference sell price now", 1)
+                                                self.logInfo("we lower reference trade price now", 1)
                                                 var result = await self.client.getAccountBalance(false)
                                                 self.logInfo(result, 1)
                                                 self.amount = parseFloat(result[self.currency + "_available"]).toFixed(4)
@@ -203,7 +203,7 @@ class BitstampBot {
                                                 self.logInfo({ "Created buy order": resultCreate }, 1)
                                             }
 
-                                            self.logInfo(`previous reference sell price ${prevReferenceSellPrice} \t current reference sell price ${self.referenceSellPrice}`, 1)
+                                            self.logInfo(`previous reference trade price ${prevReferenceTradePrice} \t current reference trade price ${self.referenceTradePrice}`, 1)
                                             self.logInfo(`created new buy order at lower price ${self.buyPrice}`, 1)
                                         }
                                     }
@@ -280,9 +280,9 @@ class BitstampBot {
 
     async readThresholds(logToScreen) {
         const data = fs.readFileSync(this.profile.path_bot_thresholds)
-        var prevReferenceSellPrice = 0
-        if (this.referenceSellPrice) {
-            prevReferenceSellPrice = this.referenceSellPrice
+        var prevReferenceTradePrice = 0
+        if (this.referenceTradePrice) {
+            prevReferenceTradePrice = this.referenceTradePrice
         }
         if (0 <= data.indexOf("high") && 0 <= data.indexOf("low")) {
             var params = JSON.parse(data)
@@ -290,19 +290,19 @@ class BitstampBot {
             var prevLow = this.low
             this.high = params.high
             this.low = params.low
-            this.referenceSellPrice = params.referenceSellPrice
-            if (0 != prevReferenceSellPrice) {
-                this.referenceSellPrice = prevReferenceSellPrice
+            this.referenceTradePrice = params.referenceTradePrice
+            if (0 != prevReferenceTradePrice) {
+                this.referenceTradePrice = prevReferenceTradePrice
             }
             if ((prevHigh != this.high || prevLow != this.low) && !(logToScreen)) {
                 this.logInfo({ "new bot threshold - high": this.high }, 2)
                 this.logInfo({ "new bot threshold - low": this.low }, 2)
-                this.logInfo({ "new bot threshold - referenceSellPrice": this.referenceSellPrice }, 2)
+                this.logInfo({ "new bot threshold - referenceTradePrice": this.referenceTradePrice }, 2)
             }
             if (logToScreen) {
                 this.logInfo({ "bot threshold - high": this.high }, 2)
                 this.logInfo({ "bot threshold - low": this.low }, 2)
-                this.logInfo({ "bot threshold - referenceSellPrice": this.referenceSellPrice }, 2)
+                this.logInfo({ "bot threshold - referenceTradePrice": this.referenceTradePrice }, 2)
             }
             return true
         } else {
