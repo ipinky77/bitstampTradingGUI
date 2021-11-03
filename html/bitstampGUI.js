@@ -580,6 +580,13 @@ function getBalance() {
     $("#crypto_available").text(parseFloat(result.crypto_available).toFixed(8))
     $("#crypto_reserved").text(parseFloat(result.crypto_reserved).toFixed(8))
     getFee()
+    var holdingCrypto = areWeHoldingCrypto()
+    if (holdingCrypto) {
+        $(".crypto").text(currentCrypto)
+    } else {
+        $(".crypto").text(currentCurrency)
+
+    }
 }
 
 function getCurrentBalance(crypto) {
