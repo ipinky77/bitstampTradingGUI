@@ -106,7 +106,11 @@ function changeProfile(profile) {
         }, timeout: 30000
     });
     currentProfile = profile
+
+    var prevPage = $("#page option:selected").val();
     init()
+
+    $("#page").val(prevPage).change();
     alert('profile changed')
 }
 
@@ -582,9 +586,9 @@ function getBalance() {
     getFee()
     var holdingCrypto = areWeHoldingCrypto()
     if (holdingCrypto) {
-        $(".crypto").text(currentCrypto)
-    } else {
         $(".crypto").text(currentCurrency)
+    } else {
+        $(".crypto").text(currentCrypto)
 
     }
 }
