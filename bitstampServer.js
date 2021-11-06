@@ -1,4 +1,4 @@
-const version = "2.0.9"
+const version = "2.0.10"
 console.log("bitstampServer.js", version)
 const BitstampClient = require("./bitstampClient.js")
 
@@ -917,7 +917,7 @@ class BitstampGUIServer {
     async getAccountsOverview() {
         var allAccountsBalances = {}
         for (var a in this.profiles) {
-            if ("uniqueID" in this.profiles[a] || this.profiles[a].mainAccount) {
+            if ("uniqueID" in this.profiles[a] || ("mainAccount" in this.profiles[a] && this.profiles[a].mainAccount)) {
                 var profileName = this.profiles[a].name
                 await this.client.setProfile(this.profiles[a])
                 var result = await this.client.getAccountBalance(true)
