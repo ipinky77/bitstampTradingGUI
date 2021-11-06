@@ -1,4 +1,4 @@
-const version = "2.0.3"
+const version = "2.0.9"
 // Import the filesystem module
 const fs = require('fs');
 const path = require('path');
